@@ -55,14 +55,36 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            padding: 10px 20px;
+            padding: 12px 24px;
             background: rgba(0, 0, 0, 0.7);
             color: white;
-            border: none;
-            border-radius: 5px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
             cursor: pointer;
             z-index: 1000;
-            font-size: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Responsive button size */
+        @media (max-width: 768px) {
+            #back-button {
+                padding: 15px 25px;
+                font-size: 20px;
+                top: 10px;
+                left: 10px;
+            }
+        }
+        
+        /* For very small devices */
+        @media (max-width: 480px) {
+            #back-button {
+                padding: 10px 20px;
+                font-size: 16px;
+            }
         }
         
         #back-button:active {
@@ -79,10 +101,48 @@
     <button id="back-button">Back to Menu</button>
     <div id="loading">Loading...</div>
     <div id="game-container"></div>
+    <div id="jump-button">JUMP</div>
     
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
     <script src="levels/levels-config.js"></script>
     <script src="game-with-custom-map.js"></script>
+    
+    <style>
+        /* Jump button */
+        #jump-button {
+            position: fixed;
+            right: 30px;
+            bottom: 40px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(76, 175, 80, 0.5);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            opacity: 0.7;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        
+        #jump-button:active {
+            transform: scale(0.9);
+            opacity: 1;
+        }
+        
+        /* Hide controls on non-touch devices */
+        @media (hover: hover) and (pointer: fine) {
+            #jump-button {
+                display: none;
+            }
+        }
+    </style>
     
     <script>
         // Back to menu button
@@ -100,11 +160,24 @@
             return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
         }
 
+        // Function to toggle fullscreen
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                const element = document.documentElement;
+                if (element.requestFullscreen) {
+                    element.requestFullscreen().catch(err => {
+                        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                }
+            }
+        }
+
         // Function to handle orientation changes
         function handleOrientation() {
             if (isMobileDevice()) {
                 const orientationMessage = document.getElementById('orientation-message');
                 const gameContainer = document.getElementById('game-container');
+                const backButton = document.getElementById('back-button');
                 
                 const isPortrait = window.innerHeight > window.innerWidth;
                 
@@ -113,7 +186,7 @@
                     if (!orientationMessage) {
                         const msg = document.createElement('div');
                         msg.id = 'orientation-message';
-                        msg.innerHTML = 'Please rotate your device to landscape mode';
+                        msg.innerHTML = 'Please rotate your device to landscape mode for the best experience';
                         msg.style.cssText = `
                             position: fixed;
                             top: 0;
@@ -133,13 +206,12 @@
                         document.body.appendChild(msg);
                     }
                     
-                    // Hide game container
-                    if (gameContainer) {
-                        gameContainer.style.display = 'none';
-                    }
+                    // Hide game container and back button
+                    if (gameContainer) gameContainer.style.display = 'none';
+                    if (backButton) backButton.style.display = 'none';
                     
                     // Try to lock orientation (works on some devices)
-                    if (screen.orientation && screen.orientation.lock) {
+                    if (screen.orientation?.lock) {
                         screen.orientation.lock('landscape').catch(() => {
                             console.log('Orientation lock not supported');
                         });
@@ -153,15 +225,23 @@
                         orientationMessage.remove();
                     }
                     
-                    // Show game container
-                    if (gameContainer) {
-                        gameContainer.style.display = 'flex';
-                    }
+                    // Show game container and back button
+                    if (gameContainer) gameContainer.style.display = 'flex';
+                    if (backButton) backButton.style.display = 'block';
+                    
+                    // Enter fullscreen in landscape
+                    toggleFullScreen();
                     
                     return true;
                 }
+            } else {
+                // For desktop or non-mobile, just ensure the game is visible
+                const gameContainer = document.getElementById('game-container');
+                const backButton = document.getElementById('back-button');
+                if (gameContainer) gameContainer.style.display = 'flex';
+                if (backButton) backButton.style.display = 'block';
+                return true;
             }
-            return true;
         }
 
         // Function to get URL parameters
@@ -201,18 +281,54 @@
             return unlockedLevels.includes(level);
         }
 
+        // Jump button reference
+        let jumpButton = null;
+        
+        // Function to initialize mobile controls
+        function initMobileControls() {
+            // Only initialize on mobile devices
+            if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
+                return;
+            }
+            
+            // Initialize jump button
+            jumpButton = document.getElementById('jump-button');
+            if (jumpButton) {
+                const handleJumpStart = () => {
+                    if (window.gameInstance) {
+                        const scene = window.gameInstance.scene.getScene('GameScene');
+                        if (scene) {
+                            scene.handleJump();
+                            scene.joystickJump = true;
+                            // Reset jump after a short delay to allow for jump buffer
+                            setTimeout(() => { 
+                                scene.joystickJump = false; 
+                            }, 100);
+                        }
+                    }
+                };
+                
+                // Add touch events
+                jumpButton.addEventListener('touchstart', handleJumpStart);
+                jumpButton.addEventListener('touchend', (e) => e.preventDefault());
+                jumpButton.addEventListener('click', handleJumpStart);
+            }
+        }
+        
         // Game launcher - loads level and starts game
         async function startGame() {
             const loadingEl = document.getElementById('loading');
             
             try {
+                // Initialize mobile controls after a short delay to ensure game is loaded
+                setTimeout(initMobileControls, 500);
                 // Get level from URL parameter
                 const currentLevel = getCurrentLevel();
                 
                 // Check if level is unlocked
                 if (!isLevelUnlocked(currentLevel)) {
                     alert(`Level ${currentLevel} is locked! Complete previous levels first.`);
-                    window.location.href = 'index.html';
+                    // window.location.href = 'index.html';
                     return;
                 }
                 
@@ -257,21 +373,27 @@
                                 height: 1080
                             }
                         },
-                        scene: GameScene,
-                        // Disable auto-start of the scene
+                        // Configure the scene with level data
                         scene: {
                             create: function() {
-                                // Scene will be started manually
+                                // Pass level data to the scene
+                                this.scene.start('GameScene', { 
+                                    levelData: levelData,
+                                    level: currentLevel 
+                                });
                             }
-                        }
+                        },
+                        // Make sure GameScene is registered
+                        scene: [GameScene]
                     };
 
                     // Store game instance globally to prevent multiple instances
                     window.gameInstance = new Phaser.Game(config);
                 }
                 
-                // Start the scene with level data
-                if (window.gameInstance.scene.getScenes().length > 0) {
+                // Start the game
+                if (window.gameInstance) {
+                    // The scene will be started by the scene.create function above
                     // If scene already exists, restart it with new level data
                     window.gameInstance.scene.getScenes()[0].scene.restart({ 
                         levelData: levelData,
@@ -288,9 +410,7 @@
             } catch (error) {
                 console.error('Error starting game:', error);
                 loadingEl.textContent = 'Error loading game. Redirecting to menu...';
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2000);
+             
             }
         }
 
@@ -299,20 +419,60 @@
             startGame();
         } else {
             // If in portrait, wait for orientation change
-            window.addEventListener('orientationchange', function orientationChange() {
+            const orientationChangeHandler = function() {
                 if (handleOrientation()) {
-                    window.removeEventListener('orientationchange', orientationChange);
+                    window.removeEventListener('orientationchange', orientationChangeHandler);
                     startGame();
+                }
+            };
+            window.addEventListener('orientationchange', orientationChangeHandler);
+            
+            // Also check for resize events to handle device rotation
+            window.addEventListener('resize', function resizeHandler() {
+                if (handleOrientation()) {
+                    window.removeEventListener('resize', resizeHandler);
+                    if (!window.gameInstance) {
+                        startGame();
+                    }
                 }
             });
         }
 
-        // Handle window resize
-        window.addEventListener('resize', function() {
+        // Handle window resize and fullscreen changes
+        function handleResize() {
             if (window.gameInstance) {
-                window.gameInstance.scale.updateBounds();
+                const game = window.gameInstance;
+                game.scale.updateBounds();
+                
+                // Force resize the game canvas
+                if (game.scene && game.scene.scenes.length > 0) {
+                    game.scene.scenes.forEach(scene => {
+                        if (scene.cameras && scene.cameras.main) {
+                            scene.cameras.main.setViewport(0, 0, game.scale.width, game.scale.height);
+                        }
+                    });
+                }
+                
+                // Reinitialize joystick on resize
+                if (joystick) {
+                    joystick.destroy();
+                    joystick = null;
+                }
+                if (isMobileDevice()) {
+                    initJoystick();
+                }
             }
-        });
+            
+            // Update orientation on resize as well
+            handleOrientation();
+        }
+        
+        // Add event listeners for resize and fullscreen changes
+        window.addEventListener('resize', handleResize);
+        document.addEventListener('fullscreenchange', handleResize);
+        document.addEventListener('webkitfullscreenchange', handleResize);
+        document.addEventListener('mozfullscreenchange', handleResize);
+        document.addEventListener('MSFullscreenChange', handleResize);
     </script>
 </body>
 </html>

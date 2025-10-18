@@ -1,4 +1,5 @@
-class GameScene extends Phaser.Scene {
+// Make GameScene available globally
+window.GameScene = class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
     this.customMapData = null;
@@ -64,7 +65,159 @@ class GameScene extends Phaser.Scene {
     graphics.destroy();
   }
 
+  // Handle joystick movement
+  handleJoystick(angle, force) {
+    // Convert angle to radians and calculate x/y components
+    const radians = Phaser.Math.DegToRad(angle);
+    const moveX = Math.cos(radians) * force;
+    const moveY = Math.sin(radians) * force;
+    
+    // Store joystick input for use in update
+    this.joystickX = moveX;
+    this.joystickY = moveY;
+    
+    // Store the raw force for jump detection
+    this.joystickForce = force;
+  }
+  
+  // Create joystick for mobile controls
+  createJoystick() {
+    // Create joystick base (outer circle)
+    const joystickRadius = 70; // Slightly larger for better touch target
+    const joystickX = 120;
+    const joystickY = this.cameras.main.height - 140;
+    
+    // Joystick base (outer circle)
+    this.joystickBase = this.add.circle(joystickX, joystickY, joystickRadius, 0x333333, 0.3);
+    this.joystickBase.setStrokeStyle(2, 0xffffff, 0.5);
+    this.joystickBase.setScrollFactor(0);
+    this.joystickBase.setInteractive();
+    this.joystickBase.setDepth(9999);
+    
+    // Joystick thumb (inner circle)
+    this.joystickThumb = this.add.circle(joystickX, joystickY, 35, 0xffffff, 0.4);
+    this.joystickThumb.setStrokeStyle(2, 0xffffff, 0.7);
+    this.joystickThumb.setScrollFactor(0);
+    this.joystickThumb.setDepth(10000); // Slightly higher than base
+    
+    // Store joystick position and active state
+    this.joystick = {
+      baseX: joystickX,
+      baseY: joystickY,
+      thumb: this.joystickThumb,
+      isActive: false,
+      radius: joystickRadius
+    };
+    
+    // Remove container reference since we're not using it anymore
+    this.joystickContainer = null;
+    
+    // Touch events for joystick
+    this.input.on('pointerdown', (pointer) => {
+      console.log('Pointer down at:', pointer.x, pointer.y, 'Screen width:', this.cameras.main.width);
+      if (pointer.x < this.cameras.main.width / 2) { // Only activate on left side of screen
+        console.log('Joystick activated');
+        this.joystick.isActive = true;
+        this.updateJoystick(pointer);
+      }
+    });
+    
+    this.input.on('pointermove', (pointer) => {
+      if (this.joystick.isActive) {
+        this.updateJoystick(pointer);
+      }
+    });
+    
+    this.input.on('pointerup', () => {
+      console.log('Pointer up - resetting joystick');
+      this.resetJoystick();
+    });
+    
+    // Debug input events
+    this.input.on('gameobjectdown', (pointer, gameObject) => {
+      console.log('Game object clicked:', gameObject);
+    });
+    
+    console.log('Joystick input listeners added');
+  }
+  
+  updateJoystick(pointer) {
+    console.log('Joystick update - Pointer:', pointer.x, pointer.y);
+    
+    // Calculate distance from joystick base to pointer
+    const dx = pointer.x - this.joystick.baseX;
+    const dy = pointer.y - this.joystick.baseY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    console.log('Joystick - dx:', dx.toFixed(2), 'dy:', dy.toFixed(2), 'distance:', distance.toFixed(2));
+    
+    // Limit thumb to joystick radius
+    const angle = Math.atan2(dy, dx);
+    const limitedDistance = Math.min(distance, this.joystick.radius);
+    
+    // Update thumb position
+    const thumbX = this.joystick.baseX + Math.cos(angle) * limitedDistance;
+    const thumbY = this.joystick.baseY + Math.sin(angle) * limitedDistance;
+    this.joystick.thumb.setPosition(thumbX, thumbY);
+    
+    console.log('Joystick - thumbX:', thumbX.toFixed(2), 'thumbY:', thumbY.toFixed(2));
+    
+    const moveX = dx / this.joystick.radius;
+    
+    // Set movement flags based on joystick position
+    this.touchLeft = moveX < -0.2; // Slight dead zone
+    this.touchRight = moveX > 0.2;  // Slight dead zone
+    
+    console.log('Joystick - moveX:', moveX.toFixed(2), 'Left:', this.touchLeft, 'Right:', this.touchRight);
+  }
+  
+  resetJoystick() {
+    console.log('Joystick reset');
+    this.joystick.thumb.setPosition(this.joystick.baseX, this.joystick.baseY);
+    this.touchLeft = false;
+    this.touchRight = false;
+  }
+
+  // Handle joystick release
+  handleJoystickEnd() {
+    this.joystickX = 0;
+    this.joystickY = 0;
+    this.joystickJump = false;
+  }
+
+  // Handle jump action
+  handleJump() {
+    if (this.player && this.player.body.touching.down) {
+      this.player.setVelocityY(-400);
+      this.joystickJump = true;
+    }
+  }
+
+  // Handle jump end
+  handleJumpEnd() {
+    this.joystickJump = false;
+  }
+
   create() {
+    console.log('GameScene create called');
+    
+    // Joystick state
+    this.joystickX = 0;
+    this.joystickY = 0;
+    this.joystickJump = false;
+    
+    // Debug input system
+    console.log('Input system enabled:', this.input.enabled);
+    console.log('Input active pointers:', this.input.pointer1);
+    
+    // Create joystick for mobile controls
+    this.createJoystick();
+    
+    // Make sure the game canvas is receiving input
+    this.game.canvas.style.touchAction = 'none';
+    this.game.canvas.style.userSelect = 'none';
+    this.game.canvas.style.webkitTapHighlightColor = 'transparent';
+    
     // Set world bounds
     const worldWidth = this.customMapData?.worldWidth || 2400;
     const worldHeight = this.customMapData?.worldHeight || 600;
@@ -72,12 +225,12 @@ class GameScene extends Phaser.Scene {
 
     // Initialize groups
     this.platforms = this.physics.add.staticGroup();
-    this.deadlyObjects = this.physics.add.group(); // Changed to dynamic group
+    this.deadlyObjects = this.physics.add.group();
     this.movingPlatforms = this.physics.add.group();
-    this.spikes = this.physics.add.group(); // Changed to dynamic group
-    this.traps = this.physics.add.group(); // Changed to dynamic group
+    this.spikes = this.physics.add.group();
+    this.traps = this.physics.add.group();
     this.ladders = this.physics.add.staticGroup();
-    this.checkpoints = this.physics.add.group(); // Changed to dynamic group for overlap detection
+    this.checkpoints = this.physics.add.group();
     
     // Store initial states for moving platforms that reset on death
     this.movingPlatformInitialStates = [];
@@ -199,13 +352,7 @@ class GameScene extends Phaser.Scene {
       this.togglePause();
     });
 
-    // Mobile touch controls
-    this.createTouchControls();
-
-    // Touch state
-    this.touchLeft = false;
-    this.touchRight = false;
-    this.touchJump = false;
+    // Mobile controls will be handled by joystick
     
     // Ladder state
     this.isOnLadder = false;
@@ -1715,14 +1862,17 @@ class GameScene extends Phaser.Scene {
       deathCause = "Collision with an object";
     }
 
-    console.log(`Player died! Cause: ${deathCause}`); // Debug log
+    console.log(`Player died! Cause: ${deathCause}`, source); // Debug log with source object
+    console.trace('Player death stack trace:'); // Show where the death was triggered from
 
     // Decrease lives
     this.lives--;
     this.livesText.setText(`Lives: ${this.lives}/${this.maxLives}`);
     
     // Check for game over
+    console.log(`Current lives: ${this.lives}, Max lives: ${this.maxLives}`);
     if (this.lives <= 0) {
+      console.log('Game over triggered - no lives left');
       this.showGameOver();
       return;
     }
@@ -1818,6 +1968,47 @@ class GameScene extends Phaser.Scene {
     if (this.levelComplete || this.gameOver || this.isPaused) {
       return;
     }
+    
+    // Reset jump flag at the start of each frame
+    this.joystickJump = false;
+    
+    // Handle player movement from joystick
+    if (this.player && this.player.body) {
+      // Horizontal movement
+      let moveSpeed = 200; // Base movement speed
+      
+      // Check for joystick input
+      if (this.joystick && this.joystick.isActive) {
+        // Use joystick input for movement
+        if (this.touchLeft) {
+          this.player.setVelocityX(-moveSpeed);
+          this.player.setFlipX(true);
+        } else if (this.touchRight) {
+          this.player.setVelocityX(moveSpeed);
+          this.player.setFlipX(false);
+        } else {
+          // No horizontal input, stop the player
+          this.player.setVelocityX(0);
+        }
+        
+        // Handle jump from joystick (if joystick is pushed up)
+        if (this.joystickJump && this.player.body.touching.down) {
+          this.player.setVelocityY(-400);
+        }
+      } else {
+        // No joystick input, check for keyboard input as fallback
+        if (this.cursors.left.isDown) {
+          this.player.setVelocityX(-moveSpeed);
+          this.player.setFlipX(true);
+        } else if (this.cursors.right.isDown) {
+          this.player.setVelocityX(moveSpeed);
+          this.player.setFlipX(false);
+        } else {
+          // No horizontal input, stop the player
+          this.player.setVelocityX(0);
+        }
+      }
+    }
 
     // Reset moving platform flag at the start of each frame
     // It will be set again by handlePlatformCollision if player is still on a platform
@@ -1852,19 +2043,19 @@ class GameScene extends Phaser.Scene {
       // Disable gravity when on ladder
       this.player.body.setAllowGravity(false);
       
-      // Vertical movement on ladder
-      if (this.cursors.up.isDown || this.touchJump) {
+      // Vertical movement on ladder - use joystick Y or keyboard
+      if (this.joystickY < -0.3 || this.cursors.up.isDown) {
         this.player.setVelocityY(-150); // Climb up
-      } else if (this.cursors.down.isDown) {
+      } else if (this.joystickY > 0.3 || this.cursors.down.isDown) {
         this.player.setVelocityY(150); // Climb down
       } else {
         this.player.setVelocityY(0); // Stop vertical movement
       }
       
-      // Horizontal movement on ladder (can move left/right to get off)
-      if (this.cursors.left.isDown || this.touchLeft) {
+      // Horizontal movement on ladder - use joystick X or keyboard
+      if (this.joystickX < -0.3 || this.cursors.left.isDown) {
         this.player.setVelocityX(-150);
-      } else if (this.cursors.right.isDown || this.touchRight) {
+      } else if (this.joystickX > 0.3 || this.cursors.right.isDown) {
         this.player.setVelocityX(150);
       } else {
         this.player.setVelocityX(0);
@@ -1904,9 +2095,19 @@ class GameScene extends Phaser.Scene {
       // Reduce speed significantly if on sticky platform
       const moveSpeed = isOnStickyPlatform ? baseSpeed * 0.3 : baseSpeed;
       
-      if (this.cursors.left.isDown || this.touchLeft) {
+      // Handle movement from joystick or keyboard
+      if (this.joystick && this.joystick.isActive) {
+        // Use joystick input with touchLeft/touchRight flags
+        if (this.touchLeft) {
+          playerHorizontalVelocity = -moveSpeed;
+        } else if (this.touchRight) {
+          playerHorizontalVelocity = moveSpeed;
+        } else {
+          playerHorizontalVelocity = 0;
+        }
+      } else if (this.cursors.left.isDown) {
         playerHorizontalVelocity = -moveSpeed;
-      } else if (this.cursors.right.isDown || this.touchRight) {
+      } else if (this.cursors.right.isDown) {
         playerHorizontalVelocity = moveSpeed;
       }
 
@@ -1915,10 +2116,12 @@ class GameScene extends Phaser.Scene {
 
       // Jump - allow jumping when on the ground or on a moving platform
       const canJump = this.player.body.touching.down || this.player.isOnMovingPlatform;
-      if ((this.cursors.up.isDown || this.touchJump) && canJump) {
+      if ((this.joystickJump || this.cursors.up.isDown) && canJump) {
         this.player.setVelocityY(-400);
         // Player is no longer on a platform if they jump
         this.player.isOnMovingPlatform = false;
+        // Reset jump flag after using it
+        this.joystickJump = false;
         this.player.movingPlatform = null;
       }
     }

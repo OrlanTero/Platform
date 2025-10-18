@@ -115,31 +115,50 @@ class GameScene extends Phaser.Scene {
     }
 
     createTouchControls() {
-        // Create semi-transparent control buttons for mobile
+        // Create joystick base (the outer circle)
+        const joystickRadius = 60;
+        const joystickX = 120;
+        const joystickY = this.cameras.main.height - 120;
+        
+        // Joystick base (outer circle)
+        this.joystickBase = this.add.circle(joystickX, joystickY, joystickRadius, 0x000000, 0.2);
+        this.joystickBase.setScrollFactor(0);
+        this.joystickBase.setInteractive();
+        
+        // Joystick thumb (inner circle)
+        this.joystickThumb = this.add.circle(joystickX, joystickY, 30, 0x000000, 0.5);
+        this.joystickThumb.setScrollFactor(0);
+        
+        // Store joystick position and active state
+        this.joystick = {
+            baseX: joystickX,
+            baseY: joystickY,
+            thumb: this.joystickThumb,
+            isActive: false,
+            radius: joystickRadius
+        };
+        
+        // Touch events for joystick
+        this.input.on('pointerdown', (pointer) => {
+            if (pointer.x < this.cameras.main.width / 2) { // Only activate on left side of screen
+                this.joystick.isActive = true;
+                this.updateJoystick(pointer);
+            }
+        });
+        
+        this.input.on('pointermove', (pointer) => {
+            if (this.joystick.isActive) {
+                this.updateJoystick(pointer);
+            }
+        });
+        
+        this.input.on('pointerup', () => {
+            this.resetJoystick();
+        });
+        
+        // Jump button (kept from original)
         const buttonAlpha = 0.3;
         const buttonSize = 80;
-        
-        // Left button
-        this.leftButton = this.add.circle(80, this.cameras.main.height - 80, buttonSize / 2, 0x0000ff, buttonAlpha);
-        this.leftButton.setScrollFactor(0);
-        this.leftButton.setInteractive();
-        
-        this.add.text(80, this.cameras.main.height - 80, '←', {
-            fontSize: '40px',
-            color: '#ffffff'
-        }).setOrigin(0.5).setScrollFactor(0);
-        
-        // Right button
-        this.rightButton = this.add.circle(200, this.cameras.main.height - 80, buttonSize / 2, 0x0000ff, buttonAlpha);
-        this.rightButton.setScrollFactor(0);
-        this.rightButton.setInteractive();
-        
-        this.add.text(200, this.cameras.main.height - 80, '→', {
-            fontSize: '40px',
-            color: '#ffffff'
-        }).setOrigin(0.5).setScrollFactor(0);
-        
-        // Jump button
         this.jumpButton = this.add.circle(this.cameras.main.width - 80, this.cameras.main.height - 80, buttonSize / 2, 0xff0000, buttonAlpha);
         this.jumpButton.setScrollFactor(0);
         this.jumpButton.setInteractive();
@@ -149,18 +168,39 @@ class GameScene extends Phaser.Scene {
             color: '#ffffff'
         }).setOrigin(0.5).setScrollFactor(0);
         
-        // Touch events
-        this.leftButton.on('pointerdown', () => { this.touchLeft = true; });
-        this.leftButton.on('pointerup', () => { this.touchLeft = false; });
-        this.leftButton.on('pointerout', () => { this.touchLeft = false; });
-        
-        this.rightButton.on('pointerdown', () => { this.touchRight = true; });
-        this.rightButton.on('pointerup', () => { this.touchRight = false; });
-        this.rightButton.on('pointerout', () => { this.touchRight = false; });
-        
         this.jumpButton.on('pointerdown', () => { this.touchJump = true; });
         this.jumpButton.on('pointerup', () => { this.touchJump = false; });
         this.jumpButton.on('pointerout', () => { this.touchJump = false; });
+    }
+    
+    updateJoystick(pointer) {
+        // Calculate distance from joystick base to pointer
+        const dx = pointer.x - this.joystick.baseX;
+        const dy = pointer.y - this.joystick.baseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Limit thumb to joystick radius
+        const angle = Math.atan2(dy, dx);
+        const limitedDistance = Math.min(distance, this.joystick.radius);
+        
+        // Update thumb position
+        const thumbX = this.joystick.baseX + Math.cos(angle) * limitedDistance;
+        const thumbY = this.joystick.baseY + Math.sin(angle) * limitedDistance;
+        this.joystick.thumb.setPosition(thumbX, thumbY);
+        
+        // Calculate horizontal movement (-1 to 1)
+        const moveX = dx / this.joystick.radius;
+        
+        // Set movement flags based on joystick position
+        this.touchLeft = moveX < -0.2; // Slight dead zone
+        this.touchRight = moveX > 0.2;  // Slight dead zone
+    }
+    
+    resetJoystick() {
+        this.joystick.isActive = false;
+        this.joystick.thumb.setPosition(this.joystick.baseX, this.joystick.baseY);
+        this.touchLeft = false;
+        this.touchRight = false;
     }
 
     update() {
