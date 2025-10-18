@@ -1,0 +1,28 @@
+{
+  "worldWidth": 3500,
+  "worldHeight": 800,
+  "objects": [
+    {
+      "type": "start-position",
+      "x": 50,
+      "y": 400,
+      "width": 40,
+      "height": 40
+    },
+    {
+      "type": "platform",
+      "color": "#4a4a4a",
+      "x": 0,
+      "y": 580,
+      "width": 300,
+      "height": 20
+    },
+    {
+      "type": "end-flag",
+      "x": 3300,
+      "y": 520,
+      "width": 40,
+      "height": 60
+    }
+  ]
+}

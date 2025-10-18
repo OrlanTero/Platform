@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Platform Game - Menu</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    </style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh;
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .menu-container {
+            text-align: center;
+            padding: 20px;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .game-title {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ffd700;
+            text-shadow: 4px 4px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            animation: glow 1s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #ffd700, 0 0 20px #ffd700;
+            }
+            to {
+                text-shadow: 0 0 10px #fff, 0 0 20px #ffd700, 0 0 30px #ffd700, 0 0 40px #ffd700;
+            }
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #aaa;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 30px 0;
+            align-items: center;
+        }
+        
+        .menu-button {
+            background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 30px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            width: 250px;
+            text-align: center;
+        }
+        
+        .menu-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        .menu-button:active {
+            transform: translateY(1px);
+        }
+        
+        .primary {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+            border: 2px solid #ffd700;
+        }
+        
+        .primary:hover {
+            background: linear-gradient(135deg, #ffed4e 0%, #ffd700 100%);
+            box-shadow: 0 8px 16px rgba(255, 215, 0, 0.6);
+        }
+        
+        .instructions {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            font-size: 12px;
+            line-height: 1.6;
+            text-align: left;
+            max-width: 600px;
+            margin: 40px auto 0;
+        }
+        
+        .instructions h3 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .menu-button {
+                width: 90%;
+                max-width: 300px;
+                padding: 12px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .instructions {
+                font-size: 10px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <h1 class="game-title">PLATFORM GAME</h1>
+        <p class="subtitle">Test Your Skills!</p>
+        
+        <div class="menu-buttons" id="level-buttons">
+            <!-- Level buttons will be dynamically generated -->
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Play:</h3>
+            <ul>
+                <li><strong>Arrow Keys / Touch Controls:</strong> Move left and right</li>
+                <li><strong>Up Arrow / Jump Button:</strong> Jump</li>
+                <li><strong>Down Arrow:</strong> Climb down ladders</li>
+                <li><strong>Lives:</strong> You have 10 lives - don't waste them!</li>
+                <li><strong>Checkpoints:</strong> Touch gray flags to activate checkpoints</li>
+                <li><strong>Goal:</strong> Reach the golden end flag to win!</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="levels/levels-config.js"></script>
+    <script>
+        // Function to get unlocked levels from localStorage
+        function getUnlockedLevels() {
+            const unlocked = localStorage.getItem('unlockedLevels');
+            return unlocked ? JSON.parse(unlocked) : [1]; // Level 1 is always unlocked
+        }
+
+        // Function to generate level buttons
+        function generateLevelButtons() {
+            const container = document.getElementById('level-buttons');
+            const unlockedLevels = getUnlockedLevels();
+            
+            LEVELS_CONFIG.levels.forEach(level => {
+                const isUnlocked = unlockedLevels.includes(level.id);
+                const button = document.createElement('a');
+                
+                if (isUnlocked) {
+                    button.href = `game.html?level=${level.id}`;
+                    button.className = level.id === 1 ? 'menu-button primary' : 'menu-button';
+                    button.textContent = level.name;
+                } else {
+                    button.className = 'menu-button locked';
+                    button.textContent = `${level.name} 🔒`;
+                    button.onclick = (e) => {
+                        e.preventDefault();
+                        alert('Complete previous levels to unlock!');
+                    };
+                }
+                
+                container.appendChild(button);
+            });
+        }
+        
+        // Initialize the menu when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            generateLevelButtons();
+        });
+    </script>

@@ -1,0 +1,78 @@
+[debug] [2025-10-17T22:35:52.786Z] ----------------------------------------------------------------------
+[debug] [2025-10-17T22:35:52.788Z] Command:       /usr/local/bin/node /opt/homebrew/bin/firebase deploy
+[debug] [2025-10-17T22:35:52.788Z] CLI Version:   14.19.0
+[debug] [2025-10-17T22:35:52.788Z] Platform:      darwin
+[debug] [2025-10-17T22:35:52.788Z] Node Version:  v22.15.0
+[debug] [2025-10-17T22:35:52.788Z] Time:          Sat Oct 18 2025 06:35:52 GMT+0800 (Philippine Standard Time)
+[debug] [2025-10-17T22:35:52.788Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-10-17T22:35:52.863Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-10-17T22:35:52.863Z] > authorizing via signed-in user (frontend@figshelf.com)
+[debug] [2025-10-17T22:35:52.863Z] [iam] checking project platform for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-10-17T22:35:52.864Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:35:52.864Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:35:52.864Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions [none]
+[debug] [2025-10-17T22:35:52.864Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions x-goog-quota-user=projects/platform
+[debug] [2025-10-17T22:35:52.864Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-10-17T22:35:53.988Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions 200
+[debug] [2025-10-17T22:35:53.988Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions {}
+[debug] [2025-10-17T22:35:53.988Z] [iam] error while checking permissions, command may fail: Authorization failed. This account is missing the following required permissions on project platform:
+
+  firebase.projects.get
+  firebasehosting.sites.update
+[debug] [2025-10-17T22:35:53.989Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:35:53.989Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:35:53.989Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/platform [none]
+[debug] [2025-10-17T22:35:54.000Z] *** [apiv2] error from fetch(https://firebase.googleapis.com/v1beta1/projects/platform, {"headers":{},"method":"GET","signal":{}}): FetchError: request to https://firebase.googleapis.com/v1beta1/projects/platform failed, reason: connect ECONNREFUSED 0.0.0.0:443
+[debug] [2025-10-17T22:35:54.000Z] Failed to make request to https://firebase.googleapis.com/v1beta1/projects/platform (original: request to https://firebase.googleapis.com/v1beta1/projects/platform failed, reason: connect ECONNREFUSED 0.0.0.0:443)
+[error] 
+[error] Error: Assertion failed: resolving hosting target of a site with no site name or target name. This should have caused an error earlier
+[debug] [2025-10-17T22:36:10.414Z] ----------------------------------------------------------------------
+[debug] [2025-10-17T22:36:10.416Z] Command:       /usr/local/bin/node /opt/homebrew/bin/firebase deploy
+[debug] [2025-10-17T22:36:10.416Z] CLI Version:   14.19.0
+[debug] [2025-10-17T22:36:10.416Z] Platform:      darwin
+[debug] [2025-10-17T22:36:10.416Z] Node Version:  v22.15.0
+[debug] [2025-10-17T22:36:10.416Z] Time:          Sat Oct 18 2025 06:36:10 GMT+0800 (Philippine Standard Time)
+[debug] [2025-10-17T22:36:10.416Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-10-17T22:36:10.500Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-10-17T22:36:10.501Z] > authorizing via signed-in user (frontend@figshelf.com)
+[debug] [2025-10-17T22:36:10.501Z] [iam] checking project platform for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-10-17T22:36:10.501Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:36:10.501Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:36:10.502Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions [none]
+[debug] [2025-10-17T22:36:10.502Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions x-goog-quota-user=projects/platform
+[debug] [2025-10-17T22:36:10.502Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-10-17T22:36:11.593Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions 200
+[debug] [2025-10-17T22:36:11.593Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/platform:testIamPermissions {}
+[debug] [2025-10-17T22:36:11.594Z] [iam] error while checking permissions, command may fail: Authorization failed. This account is missing the following required permissions on project platform:
+
+  firebase.projects.get
+  firebasehosting.sites.update
+[debug] [2025-10-17T22:36:11.594Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:36:11.594Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:36:11.594Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/platform [none]
+[debug] [2025-10-17T22:36:11.612Z] *** [apiv2] error from fetch(https://firebase.googleapis.com/v1beta1/projects/platform, {"headers":{},"method":"GET","signal":{}}): FetchError: request to https://firebase.googleapis.com/v1beta1/projects/platform failed, reason: connect ECONNREFUSED 0.0.0.0:443
+[debug] [2025-10-17T22:36:11.612Z] Failed to make request to https://firebase.googleapis.com/v1beta1/projects/platform (original: request to https://firebase.googleapis.com/v1beta1/projects/platform failed, reason: connect ECONNREFUSED 0.0.0.0:443)
+[error] 
+[error] Error: Assertion failed: resolving hosting target of a site with no site name or target name. This should have caused an error earlier
+[debug] [2025-10-17T22:36:44.397Z] ----------------------------------------------------------------------
+[debug] [2025-10-17T22:36:44.398Z] Command:       /usr/local/bin/node /opt/homebrew/bin/firebase projects:list
+[debug] [2025-10-17T22:36:44.398Z] CLI Version:   14.19.0
+[debug] [2025-10-17T22:36:44.398Z] Platform:      darwin
+[debug] [2025-10-17T22:36:44.398Z] Node Version:  v22.15.0
+[debug] [2025-10-17T22:36:44.399Z] Time:          Sat Oct 18 2025 06:36:44 GMT+0800 (Philippine Standard Time)
+[debug] [2025-10-17T22:36:44.399Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-10-17T22:36:44.482Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-10-17T22:36:44.482Z] > authorizing via signed-in user (frontend@figshelf.com)
+[debug] [2025-10-17T22:36:44.483Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:36:44.484Z] Checked if tokens are valid: true, expires at: 1760743939397
+[debug] [2025-10-17T22:36:44.484Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2025-10-17T22:36:44.515Z] *** [apiv2] error from fetch(https://firebase.googleapis.com/v1beta1/projects?pageSize=1000, {"headers":{},"method":"GET","signal":{}}): FetchError: request to https://firebase.googleapis.com/v1beta1/projects?pageSize=1000 failed, reason: connect ECONNREFUSED 0.0.0.0:443
+[debug] [2025-10-17T22:36:44.515Z] Failed to make request to https://firebase.googleapis.com/v1beta1/projects?pageSize=1000
+[debug] [2025-10-17T22:36:44.516Z] FirebaseError: Failed to make request to https://firebase.googleapis.com/v1beta1/projects?pageSize=1000
+    at RetryOperation._fn (/opt/homebrew/lib/node_modules/firebase-tools/lib/apiv2.js:261:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error] 
+[error] Error: Failed to list Firebase projects. See firebase-debug.log for more info.

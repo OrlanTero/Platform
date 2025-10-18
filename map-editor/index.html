@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Editor</title>
+    <link rel="stylesheet" href="style.css?v=4">
+    <style>
+        /* Critical CSS to ensure layout works immediately */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; width: 100vw; height: 100vh; }
+        .container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        .toolbox { width: 280px; min-width: 200px; max-width: 600px; flex-shrink: 0; background: #2d2d2d; z-index: 100; }
+        .resizer { width: 5px; background: #444; cursor: col-resize; flex-shrink: 0; }
+        .editor-area { flex: 1; min-width: 0; }
+        
+        /* Preview Modal */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            flex-direction: column;
+        }
+        
+        .preview-modal.active {
+            display: flex;
+        }
+        
+        .preview-header {
+            background: #1a1a1a;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #00d4ff;
+        }
+        
+        .preview-header h2 {
+            color: #00d4ff;
+            margin: 0;
+        }
+        
+        .preview-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .preview-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #previewFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗺️ Map Editor</h1>
+            <div class="header-actions">
+                <button id="playBtn" class="btn btn-play">▶ Play Test</button>
+                <button id="saveBtn" class="btn btn-primary">Save to LocalStorage</button>
+                <button id="exportBtn" class="btn btn-success">Export Map</button>
+                <button id="importBtn" class="btn btn-info">Import Map</button>
+                <input type="file" id="fileInput" accept=".json" style="display: none;">
+                <button id="clearBtn" class="btn btn-danger">Clear All</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="toolbox">
+                <h2>Toolbox</h2>
+                
+                <div class="tool-section">
+                    <h3>Objects</h3>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="objectSelector">Select Object:</label>
+                        <select id="objectSelector" class="form-control" style="width: 100%; margin-bottom: 10px;">
+                            <option value="">-- Select an object --</option>
+                        </select>
+                    </div>
+                    <div class="tool-item" data-type="platform" data-color="#4a4a4a">
+                        <div class="tool-preview" style="background: #4a4a4a;"></div>
+                        <span>Platform</span>
+                    </div>
+                    <div class="tool-item" data-type="moving-platform" data-color="#4a4a4a">
+                        <div class="tool-preview" style="background: #4a4a4a;"></div>
+                        <span>Moving Platform</span>
+                    </div>
+                    <div class="tool-item" data-type="deadly-floor" data-color="#ff0000">
+                        <div class="tool-preview" style="background: #ff0000;"></div>
+                        <span>Deadly Floor</span>
+                    </div>
+                    <div class="tool-item" data-type="spike" data-color="#8b4513">
+                        <div class="tool-preview spike-preview"></div>
+                        <span>Spikes</span>
+                    </div>
+                    <div class="tool-item" data-type="trap" data-color="#ff6600">
+                        <div class="tool-preview" style="background: #ff6600;"></div>
+                        <span>Trap</span>
+                    </div>
+                    <div class="tool-item" data-type="ladder" data-color="#8B4513">
+                        <div class="tool-preview" style="background: linear-gradient(90deg, #8B4513 0%, #8B4513 20%, transparent 20%, transparent 80%, #8B4513 80%, #8B4513 100%);"></div>
+                        <span>Ladder</span>
+                    </div>
+                    <div class="tool-item" data-type="start-position" data-color="#00ff00">
+                        <div class="tool-preview" style="background: #00ff00; border-radius: 50%;"></div>
+                        <span>Start Position</span>
+                    </div>
+                    <div class="tool-item" data-type="end-flag" data-color="#ffd700">
+                        <div class="tool-preview" style="background: #ffd700; clip-path: polygon(0 0, 100% 50%, 0 100%);"></div>
+                        <span>End Flag</span>
+                    </div>
+                    <div class="tool-item" data-type="checkpoint" data-color="#aaaaaa">
+                        <div class="tool-preview" style="background: linear-gradient(to right, #808080 40%, #aaaaaa 40%); clip-path: polygon(0 20%, 40% 20%, 40% 0, 100% 0, 100% 100%, 40% 100%, 40% 80%, 0 80%);"></div>
+                        <span>Checkpoint</span>
+                    </div>
+                </div>
+
+                <div class="tool-section">
+                    <h3>Properties</h3>
+                    <div id="selectedObjectInfo" class="selected-info" style="display: none;">
+                        <div class="property-group">
+                            <label>Name:</label>
+                            <input type="text" id="objectName" placeholder="Enter object name" style="width: 100%;">
+                        </div>
+                        <p><strong>Type:</strong> <span id="selectedType"></span></p>
+                    </div>
+                    <div class="property-group" id="sizeProps">
+                        <label>Width:</label>
+                        <input type="number" id="widthInput" value="150" min="20" max="500">
+                    </div>
+                    <div class="property-group" id="heightProps">
+                        <label>Height:</label>
+                        <input type="number" id="heightInput" value="20" min="10" max="200">
+                    </div>
+                    <div class="property-group" id="colorProps" style="display: none;">
+                        <label>Color:</label>
+                        <input type="color" id="colorPicker" value="#4a4a4a">
+                    </div>
+                    <div class="property-group" id="movingProps" style="display: none;">
+                        <label>Move Distance:</label>
+                        <input type="number" id="moveDistance" value="200" min="50" max="500">
+                        <label>Move Speed:</label>
+                        <input type="number" id="moveSpeed" value="2" min="1" max="10" step="0.5">
+                        <label>Movement Mode:</label>
+                        <select id="moveMode">
+                            <option value="loop">Back and Forth (Loop)</option>
+                            <option value="once">One Time Only</option>
+                        </select>
+                        <label>
+                            <input type="checkbox" id="requireTrigger">
+                            Requires Trigger
+                        </label>
+                        <div id="triggerProps" style="display: none; margin-top: 10px;">
+                            <label>Trigger Distance:</label>
+                            <input type="number" id="triggerDistance" value="200" min="50" max="1000">
+                        </div>
+                        <label>
+                            <input type="checkbox" id="resetOnDeath">
+                            Reset on Death
+                        </label>
+                    </div>
+                    <div class="property-group" id="spikeProps" style="display: none;">
+                        <label>Number of Spikes:</label>
+                        <input type="number" id="spikeCount" value="5" min="1" max="20">
+                    </div>
+                    <div class="property-group" id="rotationProps">
+                        <label>Rotation (degrees):</label>
+                        <input type="number" id="rotationInput" value="0" min="0" max="360" step="15">
+                        <input type="range" id="rotationSlider" value="0" min="0" max="360" step="15">
+                    </div>
+                    <div class="property-group" id="triggerEffectProps" style="display: none;">
+                        <label>
+                            <input type="checkbox" id="hasTriggerEffect">
+                            Has Trigger Effect
+                        </label>
+                        <div id="triggerEffectOptions" style="display: none; margin-top: 10px;">
+                            <label>Trigger Distance:</label>
+                            <input type="number" id="effectTriggerDistance" value="200" min="50" max="1000">
+                            <label>Effect Type:</label>
+                            <select id="effectType">
+                                <option value="collapse">Collapse</option>
+                                <option value="sticky">Sticky</option>
+                                <option value="hot">Hot (Deadly)</option>
+                            </select>
+                            <label>Effect Timeout (seconds):</label>
+                            <input type="number" id="effectTimeout" value="3" min="1" max="10" step="0.5">
+                        </div>
+                    </div>
+                    <div class="property-group" id="attachmentProps">
+                        <label>Attach to Moving Platform:</label>
+                        <select id="parentSelect">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="tool-section">
+                    <h3>Actions</h3>
+                    <button id="deleteMode" class="btn btn-warning">Delete Mode</button>
+                    <button id="selectMode" class="btn btn-info">Select Mode</button>
+                    <button id="attachMode" class="btn btn-info">Attach Mode</button>
+                </div>
+
+                <div class="tool-section">
+                    <h3>Info</h3>
+                    <div class="info-text">
+                        <p><strong>Click</strong> to place object</p>
+                        <p><strong>Drag</strong> to move object</p>
+                        <p><strong>Delete Mode</strong> to remove</p>
+                        <p><strong>Auto-save:</strong> Enabled</p>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="resizer" id="resizer"></div>
+
+            <main class="editor-area">
+                <div class="canvas-controls">
+                    <div class="zoom-controls">
+                        <button id="zoomOut" class="btn-icon">-</button>
+                        <span id="zoomLevel">100%</span>
+                        <button id="zoomIn" class="btn-icon">+</button>
+                    </div>
+                    <div class="grid-toggle">
+                        <label>
+                            <input type="checkbox" id="gridToggle" checked>
+                            Show Grid
+                        </label>
+                    </div>
+                    <div class="pan-hint" style="color: #888; font-size: 12px; margin-left: 15px;">
+                        🖱️ Pan: Shift+Drag or Middle Mouse | Arrow Keys
+                    </div>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="editorCanvas"></canvas>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-header">
+            <h2>🎮 Play Test Mode</h2>
+            <div class="preview-controls">
+                <button id="closePreviewBtn" class="btn btn-danger">✕ Close & Return to Editor</button>
+            </div>
+        </div>
+        <div class="preview-content">
+            <iframe id="previewFrame" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Always load the latest version by adding timestamp
+        const script = document.createElement('script');
+        script.src = 'editor.js?v=' + Date.now();
+        document.body.appendChild(script);
+    </script>
+</body>
+</html>

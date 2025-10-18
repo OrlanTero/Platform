@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Platform Game - Main Menu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .menu-container {
+            text-align: center;
+            color: white;
+            max-width: 600px;
+            padding: 40px;
+        }
+        
+        .game-title {
+            font-size: 64px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .subtitle {
+            font-size: 24px;
+            margin-bottom: 50px;
+            color: #aaa;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .menu-button {
+            width: 300px;
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+            border: 3px solid white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .menu-button:hover {
+            background: linear-gradient(135deg, #6a6a6a 0%, #4a4a4a 100%);
+            border-color: #ffd700;
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 8px 16px rgba(255, 215, 0, 0.4);
+        }
+        
+        .menu-button:active {
+            transform: translateY(-2px) scale(1.02);
+        }
+        
+        .menu-button.primary {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+            border-color: #ffd700;
+        }
+        
+        .menu-button.primary:hover {
+            background: linear-gradient(135deg, #ffed4e 0%, #ffd700 100%);
+            box-shadow: 0 8px 16px rgba(255, 215, 0, 0.6);
+        }
+        
+        .menu-button.locked {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            color: #666;
+            border-color: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .menu-button.locked:hover {
+            transform: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .instructions {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            font-size: 16px;
+            line-height: 1.6;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .instructions li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <h1 class="game-title">PLATFORM GAME</h1>
+        <p class="subtitle">Test Your Skills!</p>
+        
+        <div class="menu-buttons" id="level-buttons">
+            <!-- Level buttons will be dynamically generated -->
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Play:</h3>
+            <ul>
+                <li><strong>Arrow Keys / Touch Controls:</strong> Move left and right</li>
+                <li><strong>Up Arrow / Jump Button:</strong> Jump</li>
+                <li><strong>Down Arrow:</strong> Climb down ladders</li>
+                <li><strong>Lives:</strong> You have 10 lives - don't waste them!</li>
+                <li><strong>Checkpoints:</strong> Touch gray flags to activate checkpoints</li>
+                <li><strong>Goal:</strong> Reach the golden end flag to win!</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="levels/levels-config.js"></script>
+    <script>
+        // Generate level buttons dynamically
+        function generateLevelButtons() {
+            const container = document.getElementById('level-buttons');
+            const unlockedLevels = getUnlockedLevels();
+            
+            LEVELS_CONFIG.levels.forEach(level => {
+                const isUnlocked = unlockedLevels.includes(level.id);
+                const button = document.createElement('a');
+                
+                if (isUnlocked) {
+                    button.href = `index.html?level=${level.id}`;
+                    button.className = level.id === 1 ? 'menu-button primary' : 'menu-button';
+                    button.textContent = level.name;
+                } else {
+                    button.className = 'menu-button locked';
+                    button.textContent = `${level.name} 🔒`;
+                    button.onclick = (e) => {
+                        e.preventDefault();
+                        alert('Complete previous levels to unlock!');
+                    };
+                }
+                
+                container.appendChild(button);
+            });
+        }
+        
+        // Generate buttons when page loads
+        generateLevelButtons();
+    </script>
+</body>
+</html>

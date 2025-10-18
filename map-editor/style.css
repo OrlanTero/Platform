@@ -1,0 +1,386 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1a1a1a;
+    color: #fff;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+header {
+    background: #2d2d2d;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #444;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+header h1 {
+    font-size: 24px;
+    margin: 0;
+}
+
+.header-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.btn-play {
+    background: #00d4ff;
+    color: #000;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.btn-play:hover {
+    background: #00b8e6;
+}
+
+.btn-primary {
+    background: #007bff;
+}
+
+.btn-success {
+    background: #28a745;
+}
+
+.btn-info {
+    background: #17a2b8;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #000;
+}
+
+.btn-danger {
+    background: #dc3545;
+}
+
+.btn-icon {
+    width: 35px;
+    height: 35px;
+    border: none;
+    background: #444;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.btn-icon:hover {
+    background: #555;
+}
+
+.main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    width: 100%;
+}
+
+.toolbox {
+    width: 280px;
+    min-width: 200px;
+    max-width: 600px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    background: #2d2d2d !important;
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 1px solid #444;
+    z-index: 100;
+    order: 1;
+}
+
+.resizer {
+    width: 5px;
+    background: #444;
+    cursor: col-resize;
+    flex-shrink: 0;
+    order: 2;
+    transition: background 0.2s;
+    position: relative;
+}
+
+.resizer:hover {
+    background: #00d4ff;
+}
+
+.resizer:active {
+    background: #00d4ff;
+}
+
+.resizer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -2px;
+    right: -2px;
+    bottom: 0;
+}
+
+.toolbox h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #00d4ff;
+}
+
+.tool-section {
+    margin-bottom: 30px;
+}
+
+.tool-section h3 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: #aaa;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+}
+
+.tool-section .btn {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.tool-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #3a3a3a;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.tool-item:hover {
+    background: #454545;
+    transform: translateX(5px);
+}
+
+.tool-item.active {
+    border-color: #00d4ff;
+    background: #404040;
+}
+
+.tool-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 5px;
+    border: 2px solid #555;
+}
+
+.spike-preview {
+    background: linear-gradient(135deg, #8b4513 25%, transparent 25%),
+                linear-gradient(225deg, #8b4513 25%, transparent 25%),
+                linear-gradient(45deg, #8b4513 25%, transparent 25%),
+                linear-gradient(315deg, #8b4513 25%, transparent 25%);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 0, 10px -10px, 0px 10px;
+}
+
+.tool-item span {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.selected-info {
+    background: #404040;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    border-left: 3px solid #00d4ff;
+}
+
+.selected-info p {
+    font-size: 13px;
+    margin: 0;
+}
+
+.selected-info strong {
+    color: #00d4ff;
+}
+
+.selected-info span {
+    color: #fff;
+    text-transform: capitalize;
+}
+
+.property-group {
+    margin-bottom: 15px;
+}
+
+.property-group label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 5px;
+    color: #bbb;
+}
+
+.property-group input,
+.property-group select {
+    width: 100%;
+    padding: 8px;
+    background: #3a3a3a;
+    border: 1px solid #555;
+    border-radius: 5px;
+    color: white;
+    font-size: 14px;
+}
+
+.property-group select {
+    cursor: pointer;
+}
+
+.property-group select option {
+    background: #3a3a3a;
+    color: white;
+}
+
+.property-group input:focus {
+    outline: none;
+    border-color: #00d4ff;
+}
+
+.property-group input[type="range"] {
+    width: 100%;
+    margin-top: 5px;
+    cursor: pointer;
+}
+
+.property-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #00d4ff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.property-group input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #00d4ff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.info-text {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.6;
+}
+
+.info-text p {
+    margin-bottom: 8px;
+}
+
+.info-text strong {
+    color: #00d4ff;
+}
+
+.editor-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #1a1a1a;
+    min-width: 0;
+    overflow: hidden;
+    order: 3;
+}
+
+.canvas-controls {
+    background: #2d2d2d;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+    flex-shrink: 0;
+}
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#zoomLevel {
+    min-width: 50px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.grid-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.grid-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.canvas-wrapper {
+    flex: 1;
+    overflow: auto;
+    background: #0f0f0f;
+    min-width: 0;
+}
+
+#editorCanvas {
+    display: block;
+    cursor: crosshair;
+    background: #87CEEB;
+    /* Canvas will be sized by JS, wrapper provides scrolling */
+}
+
+#editorCanvas.delete-mode {
+    cursor: not-allowed;
+}
+
+#editorCanvas.select-mode {
+    cursor: move;
+}
