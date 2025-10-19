@@ -1610,96 +1610,167 @@ class GameScene extends Phaser.Scene {
   }
 
   createTouchControls() {
-    // Create semi-transparent control buttons for mobile
-    const buttonAlpha = 0.3;
+    // Detect if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     ('ontouchstart' in window) || 
+                     (navigator.maxTouchPoints > 0);
+    
+    // Only create controls on mobile devices
+    if (!isMobile) {
+      console.log('Desktop detected - skipping mobile controls');
+      return;
+    }
+    
+    console.log('Mobile detected - creating touch controls');
+    
+    // Create semi-transparent control buttons for mobile with improved styling
+    const buttonAlpha = 0.4;
     const buttonSize = 80;
+    const buttonColor = 0x333333;
+    const activeColor = 0x555555;
 
+    // Store button references for multi-touch
+    this.touchButtons = [];
+    
     // Left button
     this.leftButton = this.add.circle(
       80,
       this.cameras.main.height - 80,
       buttonSize / 2,
-      0x0000ff,
+      buttonColor,
       buttonAlpha,
     );
     this.leftButton.setScrollFactor(0);
     this.leftButton.setInteractive();
+    this.leftButton.setDepth(10000);
+    this.touchButtons.push(this.leftButton);
 
-    this.add
+    this.leftButtonText = this.add
       .text(80, this.cameras.main.height - 80, "←", {
         fontSize: "40px",
         color: "#ffffff",
       })
       .setOrigin(0.5)
-      .setScrollFactor(0);
+      .setScrollFactor(0)
+      .setDepth(10001);
 
     // Right button
     this.rightButton = this.add.circle(
       200,
       this.cameras.main.height - 80,
       buttonSize / 2,
-      0x0000ff,
+      buttonColor,
       buttonAlpha,
     );
     this.rightButton.setScrollFactor(0);
     this.rightButton.setInteractive();
+    this.rightButton.setDepth(10000);
+    this.touchButtons.push(this.rightButton);
 
-    this.add
+    this.rightButtonText = this.add
       .text(200, this.cameras.main.height - 80, "→", {
         fontSize: "40px",
         color: "#ffffff",
       })
       .setOrigin(0.5)
-      .setScrollFactor(0);
+      .setScrollFactor(0)
+      .setDepth(10001);
 
     // Jump button
     this.jumpButton = this.add.circle(
       this.cameras.main.width - 80,
       this.cameras.main.height - 80,
       buttonSize / 2,
-      0xff0000,
+      0xff3333,
       buttonAlpha,
     );
     this.jumpButton.setScrollFactor(0);
     this.jumpButton.setInteractive();
+    this.jumpButton.setDepth(10000);
+    this.touchButtons.push(this.jumpButton);
 
-    this.add
+    this.jumpButtonText = this.add
       .text(this.cameras.main.width - 80, this.cameras.main.height - 80, "↑", {
         fontSize: "40px",
         color: "#ffffff",
       })
       .setOrigin(0.5)
-      .setScrollFactor(0);
+      .setScrollFactor(0)
+      .setDepth(10001);
 
-    // Touch events
-    this.leftButton.on("pointerdown", () => {
+    // Multi-touch support - track active pointers
+    this.activePointers = new Map();
+
+    // Left button events with smooth feedback
+    this.leftButton.on("pointerdown", (pointer) => {
       this.touchLeft = true;
+      this.activePointers.set(pointer.id, 'left');
+      this.leftButton.setFillStyle(activeColor, 0.6);
+      this.leftButton.setScale(0.95);
     });
-    this.leftButton.on("pointerup", () => {
-      this.touchLeft = false;
+    this.leftButton.on("pointerup", (pointer) => {
+      this.activePointers.delete(pointer.id);
+      if (!Array.from(this.activePointers.values()).includes('left')) {
+        this.touchLeft = false;
+        this.leftButton.setFillStyle(buttonColor, buttonAlpha);
+        this.leftButton.setScale(1);
+      }
     });
-    this.leftButton.on("pointerout", () => {
-      this.touchLeft = false;
+    this.leftButton.on("pointerout", (pointer) => {
+      this.activePointers.delete(pointer.id);
+      if (!Array.from(this.activePointers.values()).includes('left')) {
+        this.touchLeft = false;
+        this.leftButton.setFillStyle(buttonColor, buttonAlpha);
+        this.leftButton.setScale(1);
+      }
     });
 
-    this.rightButton.on("pointerdown", () => {
+    // Right button events with smooth feedback
+    this.rightButton.on("pointerdown", (pointer) => {
       this.touchRight = true;
+      this.activePointers.set(pointer.id, 'right');
+      this.rightButton.setFillStyle(activeColor, 0.6);
+      this.rightButton.setScale(0.95);
     });
-    this.rightButton.on("pointerup", () => {
-      this.touchRight = false;
+    this.rightButton.on("pointerup", (pointer) => {
+      this.activePointers.delete(pointer.id);
+      if (!Array.from(this.activePointers.values()).includes('right')) {
+        this.touchRight = false;
+        this.rightButton.setFillStyle(buttonColor, buttonAlpha);
+        this.rightButton.setScale(1);
+      }
     });
-    this.rightButton.on("pointerout", () => {
-      this.touchRight = false;
+    this.rightButton.on("pointerout", (pointer) => {
+      this.activePointers.delete(pointer.id);
+      if (!Array.from(this.activePointers.values()).includes('right')) {
+        this.touchRight = false;
+        this.rightButton.setFillStyle(buttonColor, buttonAlpha);
+        this.rightButton.setScale(1);
+      }
     });
 
-    this.jumpButton.on("pointerdown", () => {
+    // Jump button events with smooth feedback
+    this.jumpButton.on("pointerdown", (pointer) => {
       this.touchJump = true;
+      this.activePointers.set(pointer.id, 'jump');
+      this.jumpButton.setFillStyle(0xff5555, 0.7);
+      this.jumpButton.setScale(0.95);
     });
-    this.jumpButton.on("pointerup", () => {
-      this.touchJump = false;
+    this.jumpButton.on("pointerup", (pointer) => {
+      this.activePointers.delete(pointer.id);
+      if (!Array.from(this.activePointers.values()).includes('jump')) {
+        this.touchJump = false;
+        this.jumpButton.setFillStyle(0xff3333, buttonAlpha);
+        this.jumpButton.setScale(1);
+      }
     });
-    this.jumpButton.on("pointerout", () => {
-      this.touchJump = false;
+    this.jumpButton.on("pointerout", (pointer) => {
+      this.activePointers.delete(pointer.id);
+      if (!Array.from(this.activePointers.values()).includes('jump')) {
+        this.touchJump = false;
+        this.jumpButton.setFillStyle(0xff3333, buttonAlpha);
+        this.jumpButton.setScale(1);
+      }
     });
   }
 

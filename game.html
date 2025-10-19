@@ -141,12 +141,28 @@
             const gameContainer = document.getElementById('game-container');
             const isPortrait = window.innerHeight > window.innerWidth;
             
-            // Always try to enter fullscreen when orientation is correct
+            // Improved fullscreen function with better error handling
             const tryFullscreen = () => {
-                if (!document.fullscreenElement && gameContainer.requestFullscreen) {
-                    gameContainer.requestFullscreen().catch(err => {
-                        console.log('Fullscreen error:', err);
-                    });
+                if (!document.fullscreenElement) {
+                    const elem = document.documentElement;
+                    const requestFullscreen = elem.requestFullscreen || 
+                                            elem.webkitRequestFullscreen || 
+                                            elem.mozRequestFullScreen || 
+                                            elem.msRequestFullscreen;
+                    
+                    if (requestFullscreen) {
+                        requestFullscreen.call(elem).then(() => {
+                            console.log('Entered fullscreen mode');
+                            // Lock orientation to landscape after entering fullscreen
+                            if (screen.orientation && screen.orientation.lock) {
+                                screen.orientation.lock('landscape').catch(err => {
+                                    console.log('Orientation lock failed:', err);
+                                });
+                            }
+                        }).catch(err => {
+                            console.log('Fullscreen request failed:', err);
+                        });
+                    }
                 }
             };
             
@@ -155,7 +171,13 @@
                 if (!orientationMessage) {
                     const msg = document.createElement('div');
                     msg.id = 'orientation-message';
-                    msg.innerHTML = 'Please rotate your device to landscape mode';
+                    msg.innerHTML = `
+                        <div style="text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 20px;">📱</div>
+                            <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Please Rotate Your Device</div>
+                            <div style="font-size: 16px; opacity: 0.8;">This game is best played in landscape mode</div>
+                        </div>
+                    `;
                     msg.style.cssText = `
                         position: fixed;
                         top: 0;
@@ -167,10 +189,10 @@
                         justify-content: center;
                         align-items: center;
                         color: white;
-                        font-size: 24px;
                         text-align: center;
                         padding: 20px;
                         z-index: 9999;
+                        font-family: Arial, sans-serif;
                     `;
                     document.body.appendChild(msg);
                 }
@@ -178,16 +200,6 @@
                 // Hide game container
                 if (gameContainer) {
                     gameContainer.style.display = 'none';
-                }
-                
-                // Try to lock orientation (works on some devices)
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').then(() => {
-                        // Orientation locked, now try fullscreen
-                        tryFullscreen();
-                    }).catch((err) => {
-                        console.log('Orientation lock not supported:', err);
-                    });
                 }
                 
                 return false;
@@ -202,13 +214,16 @@
                 if (gameContainer) {
                     gameContainer.style.display = 'flex';
                     
-                    // Try to enter fullscreen when in landscape
-                    if (isMobileDevice()) {
-                        tryFullscreen();
+                    // Try to enter fullscreen when in landscape on mobile
+                    if (isMobileDevice() && !document.fullscreenElement) {
+                        // Delay fullscreen request slightly to ensure proper orientation
+                        setTimeout(() => {
+                            tryFullscreen();
+                        }, 300);
                     }
                 }
                 
-                // Show fullscreen button for non-mobile or when fullscreen isn't automatic
+                // Show fullscreen button
                 const fullscreenButton = document.getElementById('fullscreen-button');
                 if (fullscreenButton) {
                     fullscreenButton.style.display = 'block';
@@ -218,15 +233,43 @@
             }
         }
         
-        // Toggle fullscreen
+        // Toggle fullscreen with cross-browser support
         function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log('Fullscreen error:', err);
-                });
+            const isFullscreen = document.fullscreenElement || 
+                               document.webkitFullscreenElement || 
+                               document.mozFullScreenElement || 
+                               document.msFullscreenElement;
+            
+            if (!isFullscreen) {
+                const elem = document.documentElement;
+                const requestFullscreen = elem.requestFullscreen || 
+                                        elem.webkitRequestFullscreen || 
+                                        elem.mozRequestFullScreen || 
+                                        elem.msRequestFullscreen;
+                
+                if (requestFullscreen) {
+                    requestFullscreen.call(elem).then(() => {
+                        console.log('Entered fullscreen');
+                        // Try to lock orientation to landscape
+                        if (screen.orientation && screen.orientation.lock) {
+                            screen.orientation.lock('landscape').catch(err => {
+                                console.log('Orientation lock failed:', err);
+                            });
+                        }
+                    }).catch(err => {
+                        console.log('Fullscreen error:', err);
+                    });
+                }
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
+                const exitFullscreen = document.exitFullscreen || 
+                                     document.webkitExitFullscreen || 
+                                     document.mozCancelFullScreen || 
+                                     document.msExitFullscreen;
+                
+                if (exitFullscreen) {
+                    exitFullscreen.call(document).catch(err => {
+                        console.log('Exit fullscreen error:', err);
+                    });
                 }
             }
         }
@@ -379,22 +422,53 @@
         fullscreenButton.onclick = toggleFullscreen;
         document.body.appendChild(fullscreenButton);
 
-        // Handle fullscreen change events
-        document.addEventListener('fullscreenchange', () => {
+        // Handle fullscreen change events with cross-browser support
+        const fullscreenChangeHandler = () => {
             const fullscreenButton = document.getElementById('fullscreen-button');
+            const isFullscreen = document.fullscreenElement || 
+                               document.webkitFullscreenElement || 
+                               document.mozFullScreenElement || 
+                               document.msFullscreenElement;
+            
             if (fullscreenButton) {
-                fullscreenButton.innerHTML = document.fullscreenElement ? '⛶' : '⛶';
+                fullscreenButton.innerHTML = isFullscreen ? '⛶' : '⛶';
+                fullscreenButton.style.opacity = isFullscreen ? '0.7' : '1';
             }
-        });
+            
+            // Update game scale if needed
+            if (window.gameInstance) {
+                window.gameInstance.scale.updateBounds();
+            }
+        };
+        
+        document.addEventListener('fullscreenchange', fullscreenChangeHandler);
+        document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
+        document.addEventListener('mozfullscreenchange', fullscreenChangeHandler);
+        document.addEventListener('MSFullscreenChange', fullscreenChangeHandler);
 
         // Initial check and start
         if (handleOrientation()) {
             startGame();
-        } else {
-            // Add orientation change listener
-            window.addEventListener('orientationchange', handleOrientation);
-            window.addEventListener('resize', handleOrientation);
         }
+        
+        // Add orientation change listeners
+        window.addEventListener('orientationchange', () => {
+            console.log('Orientation changed');
+            setTimeout(() => {
+                if (handleOrientation()) {
+                    if (!window.gameInstance) {
+                        startGame();
+                    }
+                }
+            }, 100);
+        });
+        
+        window.addEventListener('resize', () => {
+            handleOrientation();
+            if (window.gameInstance) {
+                window.gameInstance.scale.updateBounds();
+            }
+        });
         
         // Handle page visibility changes (for mobile devices)
         document.addEventListener('visibilitychange', () => {
@@ -403,12 +477,26 @@
             }
         });
         
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            if (window.gameInstance) {
-                window.gameInstance.scale.updateBounds();
-            }
-        });
+        // Add touch event to trigger fullscreen on mobile (user gesture required)
+        if (isMobileDevice()) {
+            let firstTouch = true;
+            document.addEventListener('touchstart', function enableFullscreen() {
+                if (firstTouch && !document.fullscreenElement) {
+                    firstTouch = false;
+                    const elem = document.documentElement;
+                    const requestFullscreen = elem.requestFullscreen || 
+                                            elem.webkitRequestFullscreen || 
+                                            elem.mozRequestFullScreen || 
+                                            elem.msRequestFullscreen;
+                    
+                    if (requestFullscreen) {
+                        requestFullscreen.call(elem).catch(err => {
+                            console.log('Initial fullscreen request failed:', err);
+                        });
+                    }
+                }
+            }, { once: true });
+        }
     </script>
 </body>
 </html>
