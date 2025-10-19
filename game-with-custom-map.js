@@ -1624,75 +1624,91 @@ class GameScene extends Phaser.Scene {
     console.log('Mobile detected - creating touch controls');
     
     // Create semi-transparent control buttons for mobile with improved styling
-    const buttonAlpha = 0.4;
-    const buttonSize = 80;
+    const buttonAlpha = 0.5;
+    const buttonRadius = 50;
+    const buttonSize = buttonRadius * 2;
     const buttonColor = 0x333333;
     const activeColor = 0x555555;
+
+    // Helper function to create circular button texture
+    const createButtonTexture = (key, color, alpha) => {
+      const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+      graphics.fillStyle(color, alpha);
+      graphics.fillCircle(buttonRadius, buttonRadius, buttonRadius);
+      graphics.lineStyle(3, 0xffffff, 0.3);
+      graphics.strokeCircle(buttonRadius, buttonRadius, buttonRadius);
+      graphics.generateTexture(key, buttonSize, buttonSize);
+      graphics.destroy();
+    };
+
+    // Create button textures
+    createButtonTexture('controlButton', buttonColor, buttonAlpha);
+    createButtonTexture('controlButtonActive', activeColor, 0.7);
+    createButtonTexture('jumpButton', 0xff3333, buttonAlpha);
+    createButtonTexture('jumpButtonActive', 0xff5555, 0.8);
 
     // Store button references for multi-touch
     this.touchButtons = [];
     
-    // Left button
-    this.leftButton = this.add.circle(
-      80,
-      this.cameras.main.height - 80,
-      buttonSize / 2,
-      buttonColor,
-      buttonAlpha,
-    );
+    // Left button with larger hit area for better touch detection
+    this.leftButton = this.add.image(80, this.cameras.main.height - 80, 'controlButton');
     this.leftButton.setScrollFactor(0);
-    this.leftButton.setInteractive();
+    this.leftButton.setInteractive({ useHandCursor: false, pixelPerfect: false });
     this.leftButton.setDepth(10000);
+    this.leftButton.setDisplaySize(buttonSize, buttonSize);
+    // Increase hit area for easier touching
+    this.leftButton.input.hitArea.setTo(-10, -10, buttonSize + 20, buttonSize + 20);
     this.touchButtons.push(this.leftButton);
 
     this.leftButtonText = this.add
       .text(80, this.cameras.main.height - 80, "←", {
         fontSize: "40px",
         color: "#ffffff",
+        fontStyle: "bold",
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10001);
 
-    // Right button
-    this.rightButton = this.add.circle(
-      200,
-      this.cameras.main.height - 80,
-      buttonSize / 2,
-      buttonColor,
-      buttonAlpha,
-    );
+    // Right button with larger hit area for better touch detection
+    this.rightButton = this.add.image(200, this.cameras.main.height - 80, 'controlButton');
     this.rightButton.setScrollFactor(0);
-    this.rightButton.setInteractive();
+    this.rightButton.setInteractive({ useHandCursor: false, pixelPerfect: false });
     this.rightButton.setDepth(10000);
+    this.rightButton.setDisplaySize(buttonSize, buttonSize);
+    // Increase hit area for easier touching
+    this.rightButton.input.hitArea.setTo(-10, -10, buttonSize + 20, buttonSize + 20);
     this.touchButtons.push(this.rightButton);
 
     this.rightButtonText = this.add
       .text(200, this.cameras.main.height - 80, "→", {
         fontSize: "40px",
         color: "#ffffff",
+        fontStyle: "bold",
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10001);
 
-    // Jump button
-    this.jumpButton = this.add.circle(
+    // Jump button with larger hit area for better touch detection
+    this.jumpButton = this.add.image(
       this.cameras.main.width - 80,
       this.cameras.main.height - 80,
-      buttonSize / 2,
-      0xff3333,
-      buttonAlpha,
+      'jumpButton'
     );
     this.jumpButton.setScrollFactor(0);
-    this.jumpButton.setInteractive();
+    this.jumpButton.setInteractive({ useHandCursor: false, pixelPerfect: false });
     this.jumpButton.setDepth(10000);
+    this.jumpButton.setDisplaySize(buttonSize, buttonSize);
+    // Increase hit area for easier touching
+    this.jumpButton.input.hitArea.setTo(-10, -10, buttonSize + 20, buttonSize + 20);
     this.touchButtons.push(this.jumpButton);
 
     this.jumpButtonText = this.add
       .text(this.cameras.main.width - 80, this.cameras.main.height - 80, "↑", {
         fontSize: "40px",
         color: "#ffffff",
+        fontStyle: "bold",
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
@@ -1700,19 +1716,22 @@ class GameScene extends Phaser.Scene {
 
     // Multi-touch support - track active pointers
     this.activePointers = new Map();
+    
+    console.log('Touch controls initialized with multi-touch support');
 
     // Left button events with smooth feedback
     this.leftButton.on("pointerdown", (pointer) => {
       this.touchLeft = true;
       this.activePointers.set(pointer.id, 'left');
-      this.leftButton.setFillStyle(activeColor, 0.6);
+      this.leftButton.setTexture('controlButtonActive');
       this.leftButton.setScale(0.95);
+      console.log(`Left pressed (pointer ${pointer.id}), active: ${Array.from(this.activePointers.values()).join(', ')}`);
     });
     this.leftButton.on("pointerup", (pointer) => {
       this.activePointers.delete(pointer.id);
       if (!Array.from(this.activePointers.values()).includes('left')) {
         this.touchLeft = false;
-        this.leftButton.setFillStyle(buttonColor, buttonAlpha);
+        this.leftButton.setTexture('controlButton');
         this.leftButton.setScale(1);
       }
     });
@@ -1720,7 +1739,7 @@ class GameScene extends Phaser.Scene {
       this.activePointers.delete(pointer.id);
       if (!Array.from(this.activePointers.values()).includes('left')) {
         this.touchLeft = false;
-        this.leftButton.setFillStyle(buttonColor, buttonAlpha);
+        this.leftButton.setTexture('controlButton');
         this.leftButton.setScale(1);
       }
     });
@@ -1729,14 +1748,15 @@ class GameScene extends Phaser.Scene {
     this.rightButton.on("pointerdown", (pointer) => {
       this.touchRight = true;
       this.activePointers.set(pointer.id, 'right');
-      this.rightButton.setFillStyle(activeColor, 0.6);
+      this.rightButton.setTexture('controlButtonActive');
       this.rightButton.setScale(0.95);
+      console.log(`Right pressed (pointer ${pointer.id}), active: ${Array.from(this.activePointers.values()).join(', ')}`);
     });
     this.rightButton.on("pointerup", (pointer) => {
       this.activePointers.delete(pointer.id);
       if (!Array.from(this.activePointers.values()).includes('right')) {
         this.touchRight = false;
-        this.rightButton.setFillStyle(buttonColor, buttonAlpha);
+        this.rightButton.setTexture('controlButton');
         this.rightButton.setScale(1);
       }
     });
@@ -1744,7 +1764,7 @@ class GameScene extends Phaser.Scene {
       this.activePointers.delete(pointer.id);
       if (!Array.from(this.activePointers.values()).includes('right')) {
         this.touchRight = false;
-        this.rightButton.setFillStyle(buttonColor, buttonAlpha);
+        this.rightButton.setTexture('controlButton');
         this.rightButton.setScale(1);
       }
     });
@@ -1753,14 +1773,15 @@ class GameScene extends Phaser.Scene {
     this.jumpButton.on("pointerdown", (pointer) => {
       this.touchJump = true;
       this.activePointers.set(pointer.id, 'jump');
-      this.jumpButton.setFillStyle(0xff5555, 0.7);
+      this.jumpButton.setTexture('jumpButtonActive');
       this.jumpButton.setScale(0.95);
+      console.log(`Jump pressed (pointer ${pointer.id}), active: ${Array.from(this.activePointers.values()).join(', ')}`);
     });
     this.jumpButton.on("pointerup", (pointer) => {
       this.activePointers.delete(pointer.id);
       if (!Array.from(this.activePointers.values()).includes('jump')) {
         this.touchJump = false;
-        this.jumpButton.setFillStyle(0xff3333, buttonAlpha);
+        this.jumpButton.setTexture('jumpButton');
         this.jumpButton.setScale(1);
       }
     });
@@ -1768,7 +1789,7 @@ class GameScene extends Phaser.Scene {
       this.activePointers.delete(pointer.id);
       if (!Array.from(this.activePointers.values()).includes('jump')) {
         this.touchJump = false;
-        this.jumpButton.setFillStyle(0xff3333, buttonAlpha);
+        this.jumpButton.setTexture('jumpButton');
         this.jumpButton.setScale(1);
       }
     });

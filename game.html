@@ -64,7 +64,6 @@
             cursor: pointer;
             z-index: 1000;
             -webkit-text-stroke: 4px #000;
-            text-stroke: 4px #000;
             color: #ffffff;
             user-select: none;
             pointer-events: auto;
@@ -352,6 +351,17 @@
                                 gravity: { y: 0 },
                                 debug: false,
                             },
+                        },
+                        input: {
+                            activePointers: 5, // Support up to 5 simultaneous touches
+                            touch: {
+                                target: null,
+                                capture: true
+                            },
+                            mouse: {
+                                target: null,
+                                capture: true
+                            }
                         },
                         scale: {
                             mode: Phaser.Scale.FIT,
