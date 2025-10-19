@@ -100,7 +100,7 @@ class GameScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(startX, startY, "player");
     this.player.setBounce(0.1);
     this.player.setCollideWorldBounds(false);
-    this.player.body.setGravityY(800);
+    this.player.body.setGravityY(1000);
 
     // Set up player physics body for better collision detection
     this.player.body.setSize(14, 30); // Adjust size to match player sprite
@@ -185,9 +185,37 @@ class GameScene extends Phaser.Scene {
       this,
     );
 
-    // Camera follows player
-    this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+    // Camera follows player - remove vertical bounds restriction for better following
+    this.cameras.main.setBounds(0, -worldHeight, worldWidth, worldHeight * 3);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.setZoom(2.5);
+
+    // Set camera deadzone to allow player to move before camera follows
+    const cameraWidth = this.cameras.main.width;
+    const cameraHeight = this.cameras.main.height;
+    this.cameras.main.setDeadzone(cameraWidth * 0.2, cameraHeight * 0.2);
+    
+    // Create a separate fixed UI camera (no zoom, no scroll)
+    this.uiCamera = this.cameras.add(0, 0, this.cameras.main.width, this.cameras.main.height);
+    this.uiCamera.setScroll(0, 0);
+    this.uiCamera.setZoom(1); // No zoom for UI
+    
+    // Make UI camera ignore all game objects (it will only render UI elements)
+    this.uiCamera.ignore([
+      this.platforms,
+      this.deadlyObjects,
+      this.movingPlatforms,
+      this.spikes,
+      this.traps,
+      this.ladders,
+      this.checkpoints,
+      this.player
+    ]);
+    
+    // Store reference to endFlagSprite if it exists
+    if (this.endFlagSprite) {
+      this.uiCamera.ignore(this.endFlagSprite);
+    }
 
     // Keyboard controls
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -959,10 +987,13 @@ class GameScene extends Phaser.Scene {
     );
     overlay.setScrollFactor(0);
     overlay.setDepth(1000);
+    
+    // Make UI camera ignore popup elements
+    this.uiCamera.ignore(overlay);
 
-    // Victory panel
-    const panelWidth = 500;
-    const panelHeight = 400;
+    // Victory panel - scaled down for zoom
+    const panelWidth = 350;
+    const panelHeight = 280;
     const panel = this.add.rectangle(
       centerX,
       centerY,
@@ -973,56 +1004,62 @@ class GameScene extends Phaser.Scene {
     );
     panel.setScrollFactor(0);
     panel.setDepth(1001);
-    panel.setStrokeStyle(4, 0xffd700);
+    panel.setStrokeStyle(3, 0xffd700);
+    
+    this.uiCamera.ignore(panel);
 
-    // Victory title
+    // Victory title - scaled down
     const victoryText = this.add
-      .text(centerX, centerY - 120, "🎉 VICTORY! 🎉", {
-        fontSize: "48px",
+      .text(centerX, centerY - 90, "🎉 VICTORY! 🎉", {
+        fontSize: "32px",
         fontStyle: "bold",
         color: "#ffd700",
-        stroke: "#000000",
-        strokeThickness: 6,
-      })
-      .setOrigin(0.5);
-    victoryText.setScrollFactor(0);
-    victoryText.setDepth(1002);
-
-    // Stats
-    const statsText = this.add
-      .text(centerX, centerY - 40, `Lives Remaining: ${this.lives}/${this.maxLives}`, {
-        fontSize: "24px",
-        color: "#ffffff",
         stroke: "#000000",
         strokeThickness: 4,
       })
       .setOrigin(0.5);
+    victoryText.setScrollFactor(0);
+    victoryText.setDepth(1002);
+    
+    this.uiCamera.ignore(victoryText);
+
+    // Stats - scaled down
+    const statsText = this.add
+      .text(centerX, centerY - 30, `Lives Remaining: ${this.lives}/${this.maxLives}`, {
+        fontSize: "18px",
+        color: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
     statsText.setScrollFactor(0);
     statsText.setDepth(1002);
+    
+    this.uiCamera.ignore(statsText);
 
-    // Buttons
+    // Buttons - adjusted spacing for smaller panel
     const nextLevel = this.currentLevel + 1;
     const hasNextLevel = typeof LEVELS_CONFIG !== 'undefined' && 
                          LEVELS_CONFIG.levels.find(l => l.id === nextLevel);
     
     if (hasNextLevel) {
-      this.createMenuButton(centerX, centerY + 20, "Next Level", () => {
+      this.createMenuButton(centerX, centerY + 15, "Next Level", () => {
         window.location.href = `index.html?level=${nextLevel}`;
       });
       
-      this.createMenuButton(centerX, centerY + 90, "Play Again", () => {
+      this.createMenuButton(centerX, centerY + 65, "Play Again", () => {
         window.location.href = `index.html?level=${this.currentLevel}`;
       });
       
-      this.createMenuButton(centerX, centerY + 160, "Main Menu", () => {
+      this.createMenuButton(centerX, centerY + 115, "Main Menu", () => {
         window.location.href = "menu.html";
       });
     } else {
-      this.createMenuButton(centerX, centerY + 40, "Play Again", () => {
+      this.createMenuButton(centerX, centerY + 30, "Play Again", () => {
         window.location.href = `index.html?level=${this.currentLevel}`;
       });
 
-      this.createMenuButton(centerX, centerY + 110, "Main Menu", () => {
+      this.createMenuButton(centerX, centerY + 80, "Main Menu", () => {
         window.location.href = "menu.html";
       });
     }
@@ -1072,10 +1109,12 @@ class GameScene extends Phaser.Scene {
     );
     overlay.setScrollFactor(0);
     overlay.setDepth(1000);
+    
+    this.uiCamera.ignore(overlay);
 
-    // Game over panel
-    const panelWidth = 500;
-    const panelHeight = 400;
+    // Game over panel - scaled down for zoom
+    const panelWidth = 350;
+    const panelHeight = 250;
     const panel = this.add.rectangle(
       centerX,
       centerY,
@@ -1086,39 +1125,45 @@ class GameScene extends Phaser.Scene {
     );
     panel.setScrollFactor(0);
     panel.setDepth(1001);
-    panel.setStrokeStyle(4, 0xff0000);
+    panel.setStrokeStyle(3, 0xff0000);
+    
+    this.uiCamera.ignore(panel);
 
-    // Game over title
+    // Game over title - scaled down
     const gameOverText = this.add
-      .text(centerX, centerY - 120, "GAME OVER", {
-        fontSize: "56px",
+      .text(centerX, centerY - 80, "GAME OVER", {
+        fontSize: "36px",
         fontStyle: "bold",
         color: "#ff0000",
         stroke: "#000000",
-        strokeThickness: 8,
+        strokeThickness: 5,
       })
       .setOrigin(0.5);
     gameOverText.setScrollFactor(0);
     gameOverText.setDepth(1002);
+    
+    this.uiCamera.ignore(gameOverText);
 
-    // Message
+    // Message - scaled down
     const messageText = this.add
-      .text(centerX, centerY - 40, "You ran out of lives!", {
-        fontSize: "24px",
+      .text(centerX, centerY - 30, "You ran out of lives!", {
+        fontSize: "18px",
         color: "#ffffff",
         stroke: "#000000",
-        strokeThickness: 4,
+        strokeThickness: 3,
       })
       .setOrigin(0.5);
     messageText.setScrollFactor(0);
     messageText.setDepth(1002);
+    
+    this.uiCamera.ignore(messageText);
 
-    // Buttons
-    this.createMenuButton(centerX, centerY + 40, "Try Again", () => {
+    // Buttons - adjusted spacing
+    this.createMenuButton(centerX, centerY + 30, "Try Again", () => {
       this.scene.restart();
     });
 
-    this.createMenuButton(centerX, centerY + 110, "Main Menu", () => {
+    this.createMenuButton(centerX, centerY + 80, "Main Menu", () => {
       window.location.href = "menu.html";
     });
 
@@ -1131,28 +1176,31 @@ class GameScene extends Phaser.Scene {
   }
   
   createMenuButton(x, y, text, callback) {
-    const buttonWidth = 300;
-    const buttonHeight = 50;
+    const buttonWidth = 220;
+    const buttonHeight = 40;
     
     // Button background
     const button = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x4a4a4a);
     button.setScrollFactor(0);
     button.setDepth(1002);
-    button.setStrokeStyle(3, 0xffffff);
+    button.setStrokeStyle(2, 0xffffff);
     button.setInteractive({ useHandCursor: true });
     
-    // Button text
+    // Button text - scaled down
     const buttonText = this.add
       .text(x, y, text, {
-        fontSize: "28px",
+        fontSize: "20px",
         fontStyle: "bold",
         color: "#ffffff",
         stroke: "#000000",
-        strokeThickness: 4,
+        strokeThickness: 3,
       })
       .setOrigin(0.5);
     buttonText.setScrollFactor(0);
     buttonText.setDepth(1003);
+    
+    // Make UI camera ignore popup buttons
+    this.uiCamera.ignore([button, buttonText]);
     
     // Hover effects
     button.on("pointerover", () => {
@@ -1488,36 +1536,51 @@ class GameScene extends Phaser.Scene {
   }
 
   createUI() {
-    // Lives display
-    this.livesText = this.add.text(16, 16, `Lives: ${this.lives}/${this.maxLives}`, {
-      fontSize: '24px',
+    // Get camera viewport dimensions
+    const cam = this.cameras.main;
+    
+    // Lives display - will be rendered by UI camera only
+    this.livesText = this.add.text(10, 10, `Lives: ${this.lives}/${this.maxLives}`, {
+      fontSize: '20px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 4,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      padding: { x: 10, y: 5 }
     });
     this.livesText.setScrollFactor(0);
-    this.livesText.setDepth(1000);
+    this.livesText.setOrigin(0, 0);
+    this.livesText.setDepth(100000);
     
-    // Pause button (top right)
-    const pauseButton = this.add.text(
-      this.cameras.main.width - 16,
-      16,
+    // Pause button (top right) - will be rendered by UI camera only
+    this.pauseButton = this.add.text(
+      cam.width - 10,
+      10,
       '⏸',
       {
-        fontSize: '32px',
+        fontSize: '28px',
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 4,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        padding: { x: 8, y: 4 }
       }
     );
-    pauseButton.setOrigin(1, 0);
-    pauseButton.setScrollFactor(0);
-    pauseButton.setDepth(1000);
-    pauseButton.setInteractive({ useHandCursor: true });
-    pauseButton.on('pointerdown', () => {
+    this.pauseButton.setOrigin(1, 0);
+    this.pauseButton.setScrollFactor(0);
+    this.pauseButton.setDepth(100000);
+    this.pauseButton.setInteractive({ useHandCursor: true });
+    this.pauseButton.on('pointerdown', () => {
       this.togglePause();
     });
+    
+    // Make main camera ignore UI elements (they'll only be seen by UI camera)
+    this.cameras.main.ignore([this.livesText, this.pauseButton]);
+    
+    console.log(`UI created - Camera: ${cam.width}x${cam.height}`);
+    console.log(`Lives: pos(${this.livesText.x}, ${this.livesText.y}), visible: ${this.livesText.visible}, depth: ${this.livesText.depth}`);
+    console.log(`Pause: pos(${this.pauseButton.x}, ${this.pauseButton.y}), visible: ${this.pauseButton.visible}, depth: ${this.pauseButton.depth}`);
   }
   
   togglePause() {
@@ -1554,26 +1617,26 @@ class GameScene extends Phaser.Scene {
     );
     overlay.setScrollFactor(0);
 
-    // Pause panel
+    // Pause panel - scaled down for zoom
     const panel = this.add.rectangle(
       centerX,
       centerY,
-      400,
-      350,
+      300,
+      260,
       0x1a1a1a,
       1,
     );
     panel.setScrollFactor(0);
-    panel.setStrokeStyle(4, 0xffd700);
+    panel.setStrokeStyle(3, 0xffd700);
 
-    // Pause title
+    // Pause title - scaled down
     const pauseText = this.add
-      .text(centerX, centerY - 100, "PAUSED", {
-        fontSize: "48px",
+      .text(centerX, centerY - 80, "PAUSED", {
+        fontSize: "32px",
         fontStyle: "bold",
         color: "#ffd700",
         stroke: "#000000",
-        strokeThickness: 6,
+        strokeThickness: 4,
       })
       .setOrigin(0.5);
     pauseText.setScrollFactor(0);
@@ -1581,19 +1644,19 @@ class GameScene extends Phaser.Scene {
     // Add elements to container
     this.pauseMenu.add([overlay, panel, pauseText]);
 
-    // Buttons
-    const resumeBtn = this.createMenuButton(centerX, centerY, "Resume", () => {
+    // Buttons - adjusted spacing
+    const resumeBtn = this.createMenuButton(centerX, centerY - 10, "Resume", () => {
       this.resumeGame();
     });
     this.pauseMenu.add([resumeBtn.button, resumeBtn.buttonText]);
 
-    const restartBtn = this.createMenuButton(centerX, centerY + 70, "Restart", () => {
+    const restartBtn = this.createMenuButton(centerX, centerY + 40, "Restart", () => {
       this.resumeGame();
       this.scene.restart();
     });
     this.pauseMenu.add([restartBtn.button, restartBtn.buttonText]);
 
-    const menuBtn = this.createMenuButton(centerX, centerY + 140, "Main Menu", () => {
+    const menuBtn = this.createMenuButton(centerX, centerY + 90, "Main Menu", () => {
       window.location.href = "menu.html";
     });
     this.pauseMenu.add([menuBtn.button, menuBtn.buttonText]);
@@ -1623,10 +1686,10 @@ class GameScene extends Phaser.Scene {
     
     console.log('Mobile detected - creating touch controls');
     
-    // Create semi-transparent control buttons for mobile with improved styling
+    // Create semi-transparent control buttons for mobile - scaled down for zoom
     const buttonAlpha = 0.5;
-    const buttonRadius = 45;
-    const buttonSize = 100; // Fixed square size
+    const buttonRadius = 30; // Reduced from 45
+    const buttonSize = 70; // Reduced from 100
     const buttonColor = 0x333333;
     const activeColor = 0x555555;
 
@@ -1636,7 +1699,7 @@ class GameScene extends Phaser.Scene {
       graphics.fillStyle(color, alpha);
       // Draw circle at center of square canvas
       graphics.fillCircle(buttonSize / 2, buttonSize / 2, buttonRadius);
-      graphics.lineStyle(3, 0xffffff, 0.3);
+      graphics.lineStyle(2, 0xffffff, 0.3);
       graphics.strokeCircle(buttonSize / 2, buttonSize / 2, buttonRadius);
       graphics.generateTexture(key, buttonSize, buttonSize);
       graphics.destroy();
@@ -1651,10 +1714,11 @@ class GameScene extends Phaser.Scene {
     // Store button references for multi-touch
     this.touchButtons = [];
     
-    // Left button - use natural texture size (no stretching)
-    this.leftButton = this.add.image(80, this.cameras.main.height - 80, 'controlButton');
+    // Left button - scaled down and ensure no stretching
+    this.leftButton = this.add.image(60, this.cameras.main.height - 60, 'controlButton');
     this.leftButton.setScrollFactor(0);
-    this.leftButton.setDepth(10000);
+    this.leftButton.setDepth(100000); // Very high depth
+    this.leftButton.setDisplaySize(buttonSize, buttonSize); // Ensure square aspect ratio
     this.leftButton.setInteractive(
       new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
       Phaser.Geom.Circle.Contains
@@ -1662,19 +1726,20 @@ class GameScene extends Phaser.Scene {
     this.touchButtons.push(this.leftButton);
 
     this.leftButtonText = this.add
-      .text(80, this.cameras.main.height - 80, "←", {
-        fontSize: "40px",
+      .text(60, this.cameras.main.height - 60, "←", {
+        fontSize: "28px",
         color: "#ffffff",
         fontStyle: "bold",
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
-      .setDepth(10001);
+      .setDepth(100001);
 
-    // Right button - use natural texture size (no stretching)
-    this.rightButton = this.add.image(200, this.cameras.main.height - 80, 'controlButton');
+    // Right button - scaled down and ensure no stretching
+    this.rightButton = this.add.image(140, this.cameras.main.height - 60, 'controlButton');
     this.rightButton.setScrollFactor(0);
-    this.rightButton.setDepth(10000);
+    this.rightButton.setDepth(100000); // Very high depth
+    this.rightButton.setDisplaySize(buttonSize, buttonSize); // Ensure square aspect ratio
     this.rightButton.setInteractive(
       new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
       Phaser.Geom.Circle.Contains
@@ -1682,23 +1747,24 @@ class GameScene extends Phaser.Scene {
     this.touchButtons.push(this.rightButton);
 
     this.rightButtonText = this.add
-      .text(200, this.cameras.main.height - 80, "→", {
-        fontSize: "40px",
+      .text(140, this.cameras.main.height - 60, "→", {
+        fontSize: "28px",
         color: "#ffffff",
         fontStyle: "bold",
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
-      .setDepth(10001);
+      .setDepth(100001);
 
-    // Jump button - use natural texture size (no stretching)
+    // Jump button - scaled down and ensure no stretching
     this.jumpButton = this.add.image(
-      this.cameras.main.width - 80,
-      this.cameras.main.height - 80,
+      this.cameras.main.width - 60,
+      this.cameras.main.height - 60,
       'jumpButton'
     );
     this.jumpButton.setScrollFactor(0);
-    this.jumpButton.setDepth(10000);
+    this.jumpButton.setDepth(100000); // Very high depth
+    this.jumpButton.setDisplaySize(buttonSize, buttonSize); // Ensure square aspect ratio
     this.jumpButton.setInteractive(
       new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
       Phaser.Geom.Circle.Contains
@@ -1706,28 +1772,28 @@ class GameScene extends Phaser.Scene {
     this.touchButtons.push(this.jumpButton);
 
     this.jumpButtonText = this.add
-      .text(this.cameras.main.width - 80, this.cameras.main.height - 80, "↑", {
-        fontSize: "40px",
+      .text(this.cameras.main.width - 60, this.cameras.main.height - 60, "↑", {
+        fontSize: "28px",
         color: "#ffffff",
         fontStyle: "bold",
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
-      .setDepth(10001);
+      .setDepth(100001);
 
     // Multi-touch support - track active pointers
     this.activePointers = new Map();
     
-    // Debug text to show touch state
-    this.touchDebugText = this.add.text(400, 20, 'Touch: None', {
-      fontSize: '20px',
+    // Debug text to show touch state - scaled down and higher depth
+    this.touchDebugText = this.add.text(this.cameras.main.width / 2, 50, 'Touch: None', {
+      fontSize: '14px',
       color: '#ffffff',
       backgroundColor: '#000000',
-      padding: { x: 10, y: 5 }
+      padding: { x: 8, y: 4 }
     })
     .setOrigin(0.5)
     .setScrollFactor(0)
-    .setDepth(20000);
+    .setDepth(100000);
     
     console.log('Touch controls initialized with multi-touch support');
     console.log(`Phaser active pointers: ${this.input.pointersTotal}`);
@@ -2036,7 +2102,7 @@ class GameScene extends Phaser.Scene {
       // Jump - allow jumping when on the ground or on a moving platform
       const canJump = this.player.body.touching.down || this.player.isOnMovingPlatform;
       if ((this.cursors.up.isDown || this.touchJump) && canJump) {
-        this.player.setVelocityY(-400);
+        this.player.setVelocityY(-330);
         // Player is no longer on a platform if they jump
         this.player.isOnMovingPlatform = false;
         this.player.movingPlatform = null;
