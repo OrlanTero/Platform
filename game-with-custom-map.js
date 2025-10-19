@@ -145,28 +145,54 @@ class GameScene extends Phaser.Scene {
         }
       });
       
-      this.input.on('pointerup', () => {
-        this.isDragging = false;
-        this.touchLeft = false;
-        this.touchRight = false;
-        this.thumb.x = 60;
-      });
+      this.isDragging = false;
+      this.touchLeft = false;
+      this.touchRight = false;
+      this.thumb.x = 60;
       
-      // Jump button events
-      this.jumpButton.on('pointerdown', () => {
-        this.touchJump = true;
-        this.jumpButton.setFillStyle(0x388E3C, 0.8);
-      });
+      // Jump button events - using pointer events with capture phase
+      this.jumpButton.setInteractive({ useHandCursor: true });
       
-      this.jumpButton.on('pointerup', () => {
-        this.touchJump = false;
-        this.jumpButton.setFillStyle(0x4CAF50, 0.7);
-      });
+      // Store the pointer ID when jump button is pressed
+      this.jumpButton.on('pointerdown', (pointer) => {
+          // Stop propagation to prevent joystick from capturing this event
+          if (pointer.event) pointer.event.stopPropagation();
+          this.touchJump = true;
+          if (this.jumpButton.setFillStyle) {
+              this.jumpButton.setFillStyle(0x388E3C, 0.8);
+          }
+          
+          // Store the pointer ID to track this specific touch
+          this.jumpPointerId = pointer.pointerId;
+      }, this);
       
-      this.jumpButton.on('pointerout', () => {
-        this.touchJump = false;
-        this.jumpButton.setFillStyle(0x4CAF50, 0.7);
-      });
+      this.jumpButton.on('pointerup', (pointer) => {
+          // Only process if it's the same pointer that started the jump
+          if (this.jumpPointerId === pointer.pointerId) {
+              this.touchJump = false;
+              if (this.jumpButton.setFillStyle) {
+                  this.jumpButton.setFillStyle(0x4CAF50, 0.7);
+              }
+              this.jumpPointerId = null;
+          }
+      }, this);
+      
+      this.jumpButton.on('pointerout', (pointer) => {
+          // Only process if it's the same pointer that started the jump
+          if (this.jumpPointerId === pointer.pointerId) {
+              this.touchJump = false;
+              if (this.jumpButton.setFillStyle) {
+                  this.jumpButton.setFillStyle(0x4CAF50, 0.7);
+              }
+              this.jumpPointerId = null;
+          }
+      }, this);
+      
+      // Prevent the joystick from capturing touch events when touching the jump button
+      this.jumpButton.on('pointermove', (pointer) => {
+          // Stop propagation to prevent joystick from capturing this event
+          if (pointer.event) pointer.event.stopPropagation();
+      }, this);
       
       console.log('Virtual controls created successfully');
     } catch (error) {
@@ -2251,4 +2277,5 @@ class GameScene extends Phaser.Scene {
   }
 }
 
-
+// Make GameScene available globally
+window.GameScene = GameScene;
