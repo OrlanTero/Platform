@@ -207,7 +207,25 @@ class GameScene extends Phaser.Scene {
     // Camera follows player - remove vertical bounds restriction for better following
     this.cameras.main.setBounds(0, -worldHeight, worldWidth, worldHeight * 3);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    this.cameras.main.setZoom(2.5);
+    
+    // Detect mobile device for appropriate zoom level
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     ('ontouchstart' in window) || 
+                     (navigator.maxTouchPoints > 0);
+    
+    // Set zoom based on device type and screen size
+    if (isMobile) {
+      // Mobile: use less zoom for better visibility
+      const screenWidth = this.cameras.main.width;
+      if (screenWidth < 600) {
+        this.cameras.main.setZoom(1.0); // Small mobile screens
+      } else {
+        this.cameras.main.setZoom(1.2); // Tablets
+      }
+    } else {
+      // Desktop: use higher zoom for better detail
+      this.cameras.main.setZoom(1.5);
+    }
 
     // Set camera deadzone to allow player to move before camera follows
     const cameraWidth = this.cameras.main.width;
@@ -1026,6 +1044,13 @@ class GameScene extends Phaser.Scene {
     
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
+    
+    // Detect mobile for responsive sizing
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     ('ontouchstart' in window) || 
+                     (navigator.maxTouchPoints > 0);
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
 
     // Dark overlay
     const overlay = this.add.rectangle(
@@ -1042,9 +1067,9 @@ class GameScene extends Phaser.Scene {
     // Make UI camera ignore popup elements
     this.uiCamera.ignore(overlay);
 
-    // Victory panel - scaled down for zoom
-    const panelWidth = 350;
-    const panelHeight = 280;
+    // Victory panel - responsive sizing
+    const panelWidth = isMobile ? Math.min(screenWidth * 0.85, 320) : Math.min(screenWidth * 0.5, 400);
+    const panelHeight = isMobile ? Math.min(screenHeight * 0.7, 300) : Math.min(screenHeight * 0.6, 320);
     const panel = this.add.rectangle(
       centerX,
       centerY,
@@ -1059,10 +1084,11 @@ class GameScene extends Phaser.Scene {
     
     this.uiCamera.ignore(panel);
 
-    // Victory title - scaled down
+    // Victory title - responsive font size
+    const titleFontSize = isMobile ? "24px" : "32px";
     const victoryText = this.add
-      .text(centerX, centerY - 90, "🎉 VICTORY! 🎉", {
-        fontSize: "32px",
+      .text(centerX, centerY - panelHeight * 0.32, "🎉 VICTORY! 🎉", {
+        fontSize: titleFontSize,
         fontStyle: "bold",
         color: "#ffd700",
         stroke: "#000000",
@@ -1074,10 +1100,11 @@ class GameScene extends Phaser.Scene {
     
     this.uiCamera.ignore(victoryText);
 
-    // Stats - scaled down
+    // Stats - responsive font size
+    const statsFontSize = isMobile ? "14px" : "18px";
     const statsText = this.add
-      .text(centerX, centerY - 30, `Lives Remaining: ${this.lives}/${this.maxLives}`, {
-        fontSize: "18px",
+      .text(centerX, centerY - panelHeight * 0.11, `Lives Remaining: ${this.lives}/${this.maxLives}`, {
+        fontSize: statsFontSize,
         color: "#ffffff",
         stroke: "#000000",
         strokeThickness: 3,
@@ -1088,31 +1115,34 @@ class GameScene extends Phaser.Scene {
     
     this.uiCamera.ignore(statsText);
 
-    // Buttons - adjusted spacing for smaller panel
+    // Buttons - adjusted spacing based on panel size
+    const buttonSpacing = isMobile ? 45 : 50;
+    const buttonStartY = isMobile ? panelHeight * 0.05 : panelHeight * 0.05;
+    
     const nextLevel = this.currentLevel + 1;
     const hasNextLevel = typeof LEVELS_CONFIG !== 'undefined' && 
                          LEVELS_CONFIG.levels.find(l => l.id === nextLevel);
     
     if (hasNextLevel) {
-      this.createMenuButton(centerX, centerY + 15, "Next Level", () => {
+      this.createMenuButton(centerX, centerY + buttonStartY, "Next Level", () => {
         window.location.href = `index.html?level=${nextLevel}`;
-      });
+      }, isMobile);
       
-      this.createMenuButton(centerX, centerY + 65, "Play Again", () => {
+      this.createMenuButton(centerX, centerY + buttonStartY + buttonSpacing, "Play Again", () => {
         window.location.href = `index.html?level=${this.currentLevel}`;
-      });
+      }, isMobile);
       
-      this.createMenuButton(centerX, centerY + 115, "Main Menu", () => {
+      this.createMenuButton(centerX, centerY + buttonStartY + buttonSpacing * 2, "Main Menu", () => {
         window.location.href = "menu.html";
-      });
+      }, isMobile);
     } else {
-      this.createMenuButton(centerX, centerY + 30, "Play Again", () => {
+      this.createMenuButton(centerX, centerY + buttonStartY + 10, "Play Again", () => {
         window.location.href = `index.html?level=${this.currentLevel}`;
-      });
+      }, isMobile);
 
-      this.createMenuButton(centerX, centerY + 80, "Main Menu", () => {
+      this.createMenuButton(centerX, centerY + buttonStartY + buttonSpacing + 10, "Main Menu", () => {
         window.location.href = "menu.html";
-      });
+      }, isMobile);
     }
 
     // Celebration effect
@@ -1157,6 +1187,13 @@ class GameScene extends Phaser.Scene {
     
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
+    
+    // Detect mobile for responsive sizing
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     ('ontouchstart' in window) || 
+                     (navigator.maxTouchPoints > 0);
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
 
     // Dark overlay
     const overlay = this.add.rectangle(
@@ -1172,9 +1209,9 @@ class GameScene extends Phaser.Scene {
     
     this.uiCamera.ignore(overlay);
 
-    // Game over panel - scaled down for zoom
-    const panelWidth = 350;
-    const panelHeight = 250;
+    // Game over panel - responsive sizing
+    const panelWidth = isMobile ? Math.min(screenWidth * 0.85, 320) : Math.min(screenWidth * 0.5, 400);
+    const panelHeight = isMobile ? Math.min(screenHeight * 0.6, 260) : Math.min(screenHeight * 0.5, 280);
     const panel = this.add.rectangle(
       centerX,
       centerY,
@@ -1189,10 +1226,11 @@ class GameScene extends Phaser.Scene {
     
     this.uiCamera.ignore(panel);
 
-    // Game over title - scaled down
+    // Game over title - responsive font size
+    const titleFontSize = isMobile ? "28px" : "36px";
     const gameOverText = this.add
-      .text(centerX, centerY - 80, "GAME OVER", {
-        fontSize: "36px",
+      .text(centerX, centerY - panelHeight * 0.32, "GAME OVER", {
+        fontSize: titleFontSize,
         fontStyle: "bold",
         color: "#ff0000",
         stroke: "#000000",
@@ -1204,10 +1242,11 @@ class GameScene extends Phaser.Scene {
     
     this.uiCamera.ignore(gameOverText);
 
-    // Message - scaled down
+    // Message - responsive font size
+    const messageFontSize = isMobile ? "14px" : "18px";
     const messageText = this.add
-      .text(centerX, centerY - 30, "You ran out of lives!", {
-        fontSize: "18px",
+      .text(centerX, centerY - panelHeight * 0.12, "You ran out of lives!", {
+        fontSize: messageFontSize,
         color: "#ffffff",
         stroke: "#000000",
         strokeThickness: 3,
@@ -1219,13 +1258,14 @@ class GameScene extends Phaser.Scene {
     this.uiCamera.ignore(messageText);
 
     // Buttons - adjusted spacing
-    this.createMenuButton(centerX, centerY + 30, "Try Again", () => {
+    const buttonSpacing = isMobile ? 45 : 50;
+    this.createMenuButton(centerX, centerY + panelHeight * 0.12, "Try Again", () => {
       this.scene.restart();
-    });
+    }, isMobile);
 
-    this.createMenuButton(centerX, centerY + 80, "Main Menu", () => {
+    this.createMenuButton(centerX, centerY + panelHeight * 0.12 + buttonSpacing, "Main Menu", () => {
       window.location.href = "menu.html";
-    });
+    }, isMobile);
 
     // Sad effect
     this.cameras.main.shake(300, 0.01);
@@ -1235,9 +1275,11 @@ class GameScene extends Phaser.Scene {
     });
   }
   
-  createMenuButton(x, y, text, callback) {
-    const buttonWidth = 220;
-    const buttonHeight = 40;
+  createMenuButton(x, y, text, callback, isMobile = false) {
+    // Responsive button sizing
+    const buttonWidth = isMobile ? 180 : 220;
+    const buttonHeight = isMobile ? 36 : 40;
+    const fontSize = isMobile ? "16px" : "20px";
     
     // Button background
     const button = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x4a4a4a);
@@ -1246,10 +1288,10 @@ class GameScene extends Phaser.Scene {
     button.setStrokeStyle(2, 0xffffff);
     button.setInteractive({ useHandCursor: true });
     
-    // Button text - scaled down
+    // Button text - responsive font size
     const buttonText = this.add
       .text(x, y, text, {
-        fontSize: "20px",
+        fontSize: fontSize,
         fontStyle: "bold",
         color: "#ffffff",
         stroke: "#000000",
@@ -1663,6 +1705,13 @@ class GameScene extends Phaser.Scene {
     
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
+    
+    // Detect mobile for responsive sizing
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     ('ontouchstart' in window) || 
+                     (navigator.maxTouchPoints > 0);
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
 
     // Create pause menu container
     this.pauseMenu = this.add.container(0, 0);
@@ -1679,22 +1728,25 @@ class GameScene extends Phaser.Scene {
     );
     overlay.setScrollFactor(0);
 
-    // Pause panel - scaled down for zoom
+    // Pause panel - responsive sizing
+    const panelWidth = isMobile ? Math.min(screenWidth * 0.8, 280) : Math.min(screenWidth * 0.4, 320);
+    const panelHeight = isMobile ? Math.min(screenHeight * 0.65, 280) : Math.min(screenHeight * 0.55, 300);
     const panel = this.add.rectangle(
       centerX,
       centerY,
-      300,
-      260,
+      panelWidth,
+      panelHeight,
       0x1a1a1a,
       1,
     );
     panel.setScrollFactor(0);
     panel.setStrokeStyle(3, 0xffd700);
 
-    // Pause title - scaled down
+    // Pause title - responsive font size
+    const titleFontSize = isMobile ? "24px" : "32px";
     const pauseText = this.add
-      .text(centerX, centerY - 80, "PAUSED", {
-        fontSize: "32px",
+      .text(centerX, centerY - panelHeight * 0.29, "PAUSED", {
+        fontSize: titleFontSize,
         fontStyle: "bold",
         color: "#ffd700",
         stroke: "#000000",
@@ -1707,20 +1759,21 @@ class GameScene extends Phaser.Scene {
     this.pauseMenu.add([overlay, panel, pauseText]);
 
     // Buttons - adjusted spacing
-    const resumeBtn = this.createMenuButton(centerX, centerY - 10, "Resume", () => {
+    const buttonSpacing = isMobile ? 45 : 50;
+    const resumeBtn = this.createMenuButton(centerX, centerY - panelHeight * 0.04, "Resume", () => {
       this.resumeGame();
-    });
+    }, isMobile);
     this.pauseMenu.add([resumeBtn.button, resumeBtn.buttonText]);
 
-    const restartBtn = this.createMenuButton(centerX, centerY + 40, "Restart", () => {
+    const restartBtn = this.createMenuButton(centerX, centerY - panelHeight * 0.04 + buttonSpacing, "Restart", () => {
       this.resumeGame();
       this.scene.restart();
-    });
+    }, isMobile);
     this.pauseMenu.add([restartBtn.button, restartBtn.buttonText]);
 
-    const menuBtn = this.createMenuButton(centerX, centerY + 90, "Main Menu", () => {
+    const menuBtn = this.createMenuButton(centerX, centerY - panelHeight * 0.04 + buttonSpacing * 2, "Main Menu", () => {
       window.location.href = "menu.html";
-    });
+    }, isMobile);
     this.pauseMenu.add([menuBtn.button, menuBtn.buttonText]);
   }
   
@@ -1776,11 +1829,11 @@ class GameScene extends Phaser.Scene {
     // Store button references for multi-touch
     this.touchButtons = [];
     
-    // Left button - scaled down and ensure no stretching
+    // Left button - scaled down and ensure no stretching with scale instead of setDisplaySize
     this.leftButton = this.add.image(60, this.cameras.main.height - 60, 'controlButton');
     this.leftButton.setScrollFactor(0);
     this.leftButton.setDepth(100000); // Very high depth
-    this.leftButton.setDisplaySize(buttonSize, buttonSize); // Ensure square aspect ratio
+    this.leftButton.setScale(1); // Use scale to maintain aspect ratio
     this.leftButton.setInteractive(
       new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
       Phaser.Geom.Circle.Contains
@@ -1797,11 +1850,11 @@ class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100001);
 
-    // Right button - scaled down and ensure no stretching
+    // Right button - scaled down and ensure no stretching with scale instead of setDisplaySize
     this.rightButton = this.add.image(140, this.cameras.main.height - 60, 'controlButton');
     this.rightButton.setScrollFactor(0);
     this.rightButton.setDepth(100000); // Very high depth
-    this.rightButton.setDisplaySize(buttonSize, buttonSize); // Ensure square aspect ratio
+    this.rightButton.setScale(1); // Use scale to maintain aspect ratio
     this.rightButton.setInteractive(
       new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
       Phaser.Geom.Circle.Contains
@@ -1818,7 +1871,7 @@ class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100001);
 
-    // Jump button - scaled down and ensure no stretching
+    // Jump button - scaled down and ensure no stretching with scale instead of setDisplaySize
     this.jumpButton = this.add.image(
       this.cameras.main.width - 60,
       this.cameras.main.height - 60,
@@ -1826,7 +1879,7 @@ class GameScene extends Phaser.Scene {
     );
     this.jumpButton.setScrollFactor(0);
     this.jumpButton.setDepth(100000); // Very high depth
-    this.jumpButton.setDisplaySize(buttonSize, buttonSize); // Ensure square aspect ratio
+    this.jumpButton.setScale(1); // Use scale to maintain aspect ratio
     this.jumpButton.setInteractive(
       new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
       Phaser.Geom.Circle.Contains
@@ -2173,7 +2226,7 @@ class GameScene extends Phaser.Scene {
       // Jump - allow jumping when on the ground or on a moving platform
       const canJump = this.player.body.touching.down || this.player.isOnMovingPlatform;
       if ((this.cursors.up.isDown || this.touchJump) && canJump) {
-        this.player.setVelocityY(-350);
+        this.player.setVelocityY(-400);
         // Play jump sound
         if (this.soundsReady && this.sound && this.sound.get('jump')) {
           try {
