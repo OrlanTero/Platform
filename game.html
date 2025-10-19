@@ -8,11 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="screen-orientation" content="landscape">
     <meta name="full-screen" content="yes">
-    <meta name="x5-fullscreen" content="true">
-    <meta name="x5-page-mode" content="app">
-    <meta name="x5-orientation" content="landscape">
-    <meta name="theme-color" content="#000000">
-    <link rel="manifest" href="manifest.json">
+    <meta name="browsermode" content="application">
     <title>Platform Game - Play</title>
     <style>
         * {
@@ -37,84 +33,53 @@
             background: #1a1a1a;
         }
 
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            touch-action: none;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -khtml-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            background: #000;
-            position: fixed;
-        }
-
         #game-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
-            touch-action: none;
+            touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-            background: #000;
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
         }
         
-        #fullscreen-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            padding: 10px 15px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: 1px solid #fff;
-            border-radius: 5px;
-            font-size: 14px;
-            cursor: pointer;
-            display: none; /* Initially hidden */
-        }
-
-        canvas {
-            display: block;
-            width: 100% !important;
-            height: 100% !important;
+        #game-canvas {
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
         }
         
-        /* Landscape orientation warning for mobile */
-        #orientation-warning {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            color: white;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-            z-index: 9999;
-            font-size: 24px;
-            font-family: Arial, sans-serif;
+        /* Top bar buttons */
+        .top-button {
+            position: absolute;
+            top: 16px;
+            font-size: 32px;
+            cursor: pointer;
+            z-index: 1000;
+            -webkit-text-stroke: 4px #000;
+            text-stroke: 4px #000;
+            color: #ffffff;
+            user-select: none;
+            pointer-events: auto;
         }
         
-        @media screen and (max-width: 768px) and (orientation: portrait) {
-            #orientation-warning {
-                display: flex;
-            }
-            #game-container {
-                display: none;
-            }
+        #back-button {
+            right: 112px;
+        }
+        
+        #fullscreen-button {
+            right: 64px;
+        }
+        
+        #pause-button {
+            right: 16px;
         }
         
         #loading {
@@ -149,225 +114,121 @@
     </style>
 </head>
 <body>
-    <button id="back-button">Back to Menu</button>
     <div id="loading">Loading...</div>
-    <div id="orientation-warning">
-        <div>
-            <h2>Please rotate your device to landscape mode</h2>
-            <p>This game is best played in landscape mode on mobile devices.</p>
-        </div>
-    </div>
-    <div id="game-container">
-        <button id="fullscreen-button">Fullscreen</button>
-    </div>
+    <div id="game-container"></div>
     
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
     <script src="levels/levels-config.js"></script>
-    <!-- Using game-with-custom-map.js which has the updated controls -->
     <script src="game-with-custom-map.js"></script>
     
     <script>
-        // Handle fullscreen on mobile
-        function requestFullScreen() {
-            const el = document.documentElement;
-            const fullscreenPromise = el.requestFullscreen || 
-                                   el.mozRequestFullScreen || 
-                                   el.webkitRequestFullscreen || 
-                                   el.msRequestFullscreen;
-            
-            if (fullscreenPromise) {
-                fullscreenPromise.call(el).catch(err => {
-                    console.log('Fullscreen error:', err);
-                    // Show manual fullscreen button if automatic fails
-                    document.getElementById('fullscreen-button').style.display = 'block';
-                });
-            } else {
-                // Show manual fullscreen button if not supported
-                document.getElementById('fullscreen-button').style.display = 'block';
-            }
-        }
-        
-        // Check if fullscreen is active
-        function isFullscreen() {
-            return document.fullscreenElement || 
-                   document.mozFullScreenElement || 
-                   document.webkitFullscreenElement || 
-                   document.msFullscreenElement;
-        }
-        
-        // Toggle fullscreen
-        function toggleFullScreen() {
-            if (isFullscreen()) {
-                const exitFullscreen = document.exitFullscreen || 
-                                     document.mozCancelFullScreen || 
-                                     document.webkitExitFullscreen || 
-                                     document.msExitFullscreen;
-                if (exitFullscreen) exitFullscreen.call(document);
-            } else {
-                requestFullScreen();
-            }
-        }
-
-        // Lock orientation to landscape
-        function lockOrientation() {
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(console.warn);
-            } else if (screen.lockOrientation) {
-                screen.lockOrientation('landscape');
-            } else if (screen.mozLockOrientation) {
-                screen.mozLockOrientation('landscape');
-            } else if (screen.msLockOrientation) {
-                screen.msLockOrientation('landscape');
-            }
-        }
-
-        // Handle orientation changes
-        function handleOrientation() {
-            const isPortrait = window.innerHeight > window.innerWidth;
-            const gameContainer = document.getElementById('game-container');
-            const orientationWarning = document.getElementById('orientation-warning');
-            
-            if (isPortrait) {
-                // Portrait mode
-                orientationWarning.style.display = 'flex';
-                gameContainer.style.display = 'none';
-            } else {
-                // Landscape mode
-                orientationWarning.style.display = 'none';
-                gameContainer.style.display = 'block';
-                
-                // Try to enter fullscreen when in landscape
-                if (!isFullscreen()) {
-                    // Small delay to ensure the orientation change is complete
-                    setTimeout(() => {
-                        requestFullScreen();
-                    }, 100);
-                }
-            }
-        }
-
-        // Fullscreen change handler
-        function handleFullscreenChange() {
-            const fullscreenButton = document.getElementById('fullscreen-button');
-            if (isFullscreen()) {
-                fullscreenButton.style.display = 'none';
-                // Hide address bar on mobile
-                setTimeout(() => {
-                    window.scrollTo(0, 1);
-                }, 100);
-            } else if (window.innerHeight < window.innerWidth) {
-                // In landscape but not fullscreen
-                fullscreenButton.style.display = 'block';
-            }
-        }
-
-        // Initial setup
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set initial orientation
-            handleOrientation();
-            
-            // Add event listeners
-            window.addEventListener('resize', handleOrientation);
-            window.addEventListener('orientationchange', handleOrientation);
-            
-            // Fullscreen change events
-            document.addEventListener('fullscreenchange', handleFullscreenChange);
-            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-            document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-            
-            // Manual fullscreen button
-            document.getElementById('fullscreen-button').addEventListener('click', toggleFullScreen);
-            
-            // Try to lock orientation
-            lockOrientation();
-            
-            // Request fullscreen on touch for mobile
-            document.addEventListener('touchstart', function() {
-                if (!isFullscreen() && window.innerHeight < window.innerWidth) {
-                    requestFullScreen();
-                    lockOrientation();
-                }
-            }, { once: true });
-        });
-
-        // Back to menu button
-        document.getElementById('back-button').addEventListener('click', function() {
-            // Destroy the game instance if it exists
-            if (window.gameInstance) {
-                window.gameInstance.destroy(true);
-                window.gameInstance = null;
-            }
-            window.location.href = 'index.html';
-        });
 
         // Function to detect mobile devices
         function isMobileDevice() {
-            return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+            return (typeof window.orientation !== "undefined") || 
+                   (navigator.userAgent.match(/Android/i) ||
+                    navigator.userAgent.match(/webOS/i) ||
+                    navigator.userAgent.match(/iPhone/i) ||
+                    navigator.userAgent.match(/iPad/i) ||
+                    navigator.userAgent.match(/iPod/i) ||
+                    navigator.userAgent.match(/BlackBerry/i) ||
+                    navigator.userAgent.match(/Windows Phone/i));
         }
 
         // Function to handle orientation changes
         function handleOrientation() {
-            if (isMobileDevice()) {
+            const orientationMessage = document.getElementById('orientation-message');
+            const gameContainer = document.getElementById('game-container');
+            const isPortrait = window.innerHeight > window.innerWidth;
+            
+            // Always try to enter fullscreen when orientation is correct
+            const tryFullscreen = () => {
+                if (!document.fullscreenElement && gameContainer.requestFullscreen) {
+                    gameContainer.requestFullscreen().catch(err => {
+                        console.log('Fullscreen error:', err);
+                    });
+                }
+            };
+            
+            if (isMobileDevice() && isPortrait) {
+                // Show orientation message
+                if (!orientationMessage) {
+                    const msg = document.createElement('div');
+                    msg.id = 'orientation-message';
+                    msg.innerHTML = 'Please rotate your device to landscape mode';
+                    msg.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: #1a1a1a;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        color: white;
+                        font-size: 24px;
+                        text-align: center;
+                        padding: 20px;
+                        z-index: 9999;
+                    `;
+                    document.body.appendChild(msg);
+                }
+                
+                // Hide game container
+                if (gameContainer) {
+                    gameContainer.style.display = 'none';
+                }
+                
+                // Try to lock orientation (works on some devices)
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').then(() => {
+                        // Orientation locked, now try fullscreen
+                        tryFullscreen();
+                    }).catch((err) => {
+                        console.log('Orientation lock not supported:', err);
+                    });
+                }
+                
+                return false;
+            } else {
+                // Hide orientation message if visible
                 const orientationMessage = document.getElementById('orientation-message');
-                const gameContainer = document.getElementById('game-container');
+                if (orientationMessage) {
+                    orientationMessage.remove();
+                }
                 
-                const isPortrait = window.innerHeight > window.innerWidth;
+                // Show game container
+                if (gameContainer) {
+                    gameContainer.style.display = 'flex';
+                    
+                    // Try to enter fullscreen when in landscape
+                    if (isMobileDevice()) {
+                        tryFullscreen();
+                    }
+                }
                 
-                if (isPortrait) {
-                    // Show orientation message
-                    if (!orientationMessage) {
-                        const msg = document.createElement('div');
-                        msg.id = 'orientation-message';
-                        msg.innerHTML = 'Please rotate your device to landscape mode';
-                        msg.style.cssText = `
-                            position: fixed;
-                            top: 0;
-                            left: 0;
-                            width: 100%;
-                            height: 100%;
-                            background: #1a1a1a;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            color: white;
-                            font-size: 24px;
-                            text-align: center;
-                            padding: 20px;
-                            z-index: 9999;
-                        `;
-                        document.body.appendChild(msg);
-                    }
-                    
-                    // Hide game container
-                    if (gameContainer) {
-                        gameContainer.style.display = 'none';
-                    }
-                    
-                    // Try to lock orientation (works on some devices)
-                    if (screen.orientation && screen.orientation.lock) {
-                        screen.orientation.lock('landscape').catch(() => {
-                            console.log('Orientation lock not supported');
-                        });
-                    }
-                    
-                    return false;
-                } else {
-                    // Hide orientation message if visible
-                    const orientationMessage = document.getElementById('orientation-message');
-                    if (orientationMessage) {
-                        orientationMessage.remove();
-                    }
-                    
-                    // Show game container
-                    if (gameContainer) {
-                        gameContainer.style.display = 'flex';
-                    }
-                    
-                    return true;
+                // Show fullscreen button for non-mobile or when fullscreen isn't automatic
+                const fullscreenButton = document.getElementById('fullscreen-button');
+                if (fullscreenButton) {
+                    fullscreenButton.style.display = 'block';
+                }
+                
+                return true;
+            }
+        }
+        
+        // Toggle fullscreen
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen error:', err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
                 }
             }
-            return true;
         }
 
         // Function to get URL parameters
@@ -500,19 +361,48 @@
             }
         }
 
+     
+
+        // Add fullscreen button (top right)
+        const fullscreenButton = document.createElement('div');
+        fullscreenButton.className = 'top-button';
+        fullscreenButton.id = 'fullscreen-button';
+        fullscreenButton.textContent = '⛶';
+        fullscreenButton.style.cursor = 'pointer';
+        fullscreenButton.style.fontSize = '32px';
+        fullscreenButton.style.color = '#ffffff';
+        fullscreenButton.style.webkitTextStroke = '4px #000';
+        fullscreenButton.style.textShadow = 'none';
+        fullscreenButton.style.pointerEvents = 'auto';
+        fullscreenButton.style.fontWeight = 'bold';
+        fullscreenButton.style.opacity = '1';
+        fullscreenButton.onclick = toggleFullscreen;
+        document.body.appendChild(fullscreenButton);
+
+        // Handle fullscreen change events
+        document.addEventListener('fullscreenchange', () => {
+            const fullscreenButton = document.getElementById('fullscreen-button');
+            if (fullscreenButton) {
+                fullscreenButton.innerHTML = document.fullscreenElement ? '⛶' : '⛶';
+            }
+        });
+
         // Initial check and start
         if (handleOrientation()) {
             startGame();
         } else {
-            // If in portrait, wait for orientation change
-            window.addEventListener('orientationchange', function orientationChange() {
-                if (handleOrientation()) {
-                    window.removeEventListener('orientationchange', orientationChange);
-                    startGame();
-                }
-            });
+            // Add orientation change listener
+            window.addEventListener('orientationchange', handleOrientation);
+            window.addEventListener('resize', handleOrientation);
         }
-
+        
+        // Handle page visibility changes (for mobile devices)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                handleOrientation();
+            }
+        });
+        
         // Handle window resize
         window.addEventListener('resize', function() {
             if (window.gameInstance) {

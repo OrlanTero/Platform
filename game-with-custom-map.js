@@ -64,168 +64,8 @@ class GameScene extends Phaser.Scene {
     graphics.destroy();
   }
 
-  destroy() {
-    // Clean up joystick and button when scene is destroyed
-    if (this.joyStick) {
-      this.joyStick.destroy();
-      this.jumpButton.destroy();
-      this.jumpText.destroy();
-    }
-  }
-
-  createVirtualControls() {
-    try {
-      // Initialize touch controls state
-      this.touchLeft = false;
-      this.touchRight = false;
-      this.touchJump = false;
-      
-      const screenWidth = this.cameras.main.width;
-      const screenHeight = this.cameras.main.height;
-      
-      // Create joystick base
-      const base = this.add.circle(60, screenHeight - 60, 50, 0x888888, 0.5);
-      base.setScrollFactor(0);
-      base.setDepth(1000);
-      
-      // Create joystick thumb
-      this.thumb = this.add.circle(60, screenHeight - 60, 25, 0xcccccc, 0.8);
-      this.thumb.setScrollFactor(0);
-      this.thumb.setDepth(1001);
-      
-      // Create jump button
-      this.jumpButton = this.add.circle(
-        screenWidth - 60, 
-        screenHeight - 60, 
-        40, 
-        0x4CAF50, 
-        0.7
-      ).setScrollFactor(0).setDepth(1000);
-      
-      // Add jump button text
-      this.jumpText = this.add.text(
-        screenWidth - 60, 
-        screenHeight - 60, 
-        'JUMP', 
-        { 
-          font: '16px Arial', 
-          fill: '#ffffff',
-          fontWeight: 'bold'
-        }
-      ).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
-      
-      // Make controls interactive
-      base.setInteractive({ useHandCursor: true });
-      this.jumpButton.setInteractive({ useHandCursor: true });
-      
-      // Enable multi-touch
-      this.input.addPointer();
-      
-      // Track active pointers
-      this.joystickPointerId = null;
-      this.jumpPointerId = null;
-      
-      // Joystick drag events
-      this.input.on('pointerdown', (pointer) => {
-        // Only activate joystick if touching the left side and no other joystick is active
-        if (pointer.x < screenWidth / 2 && this.joystickPointerId === null) {
-          this.joystickPointerId = pointer.id;
-          this.isDragging = true;
-          
-          // Update joystick position to touch point
-          this.thumb.x = Phaser.Math.Clamp(pointer.x, 10, 110);
-          this.thumb.y = screenHeight - 60;
-          
-          // Calculate direction
-          const dx = pointer.x - 60;
-          if (Math.abs(dx) > 20) { // Deadzone
-            this.touchLeft = dx < 0;
-            this.touchRight = dx > 0;
-          }
-        }
-      }, this);
-      
-      // Handle joystick movement
-      this.input.on('pointermove', (pointer) => {
-        // Only process if this is the joystick pointer
-        if (pointer.id === this.joystickPointerId) {
-          // Update thumb position with bounds checking
-          const dx = pointer.x - 60;
-          
-          if (Math.abs(dx) > 20) { // Deadzone
-            this.touchLeft = dx < 0;
-            this.touchRight = dx > 0;
-            
-            // Limit thumb movement
-            const thumbX = Phaser.Math.Clamp(pointer.x, 10, 110);
-            this.thumb.x = thumbX;
-          } else {
-            this.touchLeft = false;
-            this.touchRight = false;
-            this.thumb.x = 60;
-          }
-        }
-      }, this);
-      
-      // Reset joystick when touch ends
-      this.input.on('pointerup', (pointer) => {
-        if (pointer.id === this.joystickPointerId) {
-          this.isDragging = false;
-          this.touchLeft = false;
-          this.touchRight = false;
-          this.thumb.x = 60;
-          this.joystickPointerId = null;
-        }
-      }, this);
-      
-      this.isDragging = false;
-      this.touchLeft = false;
-      this.touchRight = false;
-      this.thumb.x = 60;
-      
-      // Jump button events - using pointer events with capture phase
-      this.jumpButton.setInteractive({ useHandCursor: true });
-      
-      // Handle jump button with multi-touch support
-      this.jumpButton.on('pointerdown', (pointer) => {
-        // Only activate jump if no other jump is active
-        if (this.jumpPointerId === null) {
-          this.jumpPointerId = pointer.id;
-          this.touchJump = true;
-          if (this.jumpButton.setFillStyle) {
-            this.jumpButton.setFillStyle(0x388E3C, 0.8);
-          }
-        }
-      }, this);
-      
-      this.jumpButton.on('pointerup', (pointer) => {
-        if (pointer.id === this.jumpPointerId) {
-          this.touchJump = false;
-          if (this.jumpButton.setFillStyle) {
-            this.jumpButton.setFillStyle(0x4CAF50, 0.7);
-          }
-          this.jumpPointerId = null;
-        }
-      }, this);
-      
-      this.jumpButton.on('pointerout', (pointer) => {
-        if (pointer.id === this.jumpPointerId) {
-          this.touchJump = false;
-          if (this.jumpButton.setFillStyle) {
-            this.jumpButton.setFillStyle(0x4CAF50, 0.7);
-          }
-          this.jumpPointerId = null;
-        }
-      }, this);
-      
-      console.log('Virtual controls created successfully');
-    } catch (error) {
-      console.error('Error creating virtual controls:', error);
-    }
-  }
-  
   create() {
-    // Set world bounds first
+    // Set world bounds
     const worldWidth = this.customMapData?.worldWidth || 2400;
     const worldHeight = this.customMapData?.worldHeight || 600;
     this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
@@ -348,105 +188,24 @@ class GameScene extends Phaser.Scene {
     // Camera follows player
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    
-    // Create virtual controls after camera is set up
-    this.createVirtualControls();
 
     // Keyboard controls
     this.cursors = this.input.keyboard.createCursorKeys();
     
-    // Initialize touch controls state
-    this.touchLeft = false;
-    this.touchRight = false;
-    this.touchJump = false;
-    
-    // Create virtual joystick if on mobile or for testing
-    const isTouchDevice = 'ontouchstart' in window || 
-      (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || 
-      (navigator.msMaxTouchPoints && navigator.msMaxTouchPoints > 0);
-      
-    console.log('Touch device detected:', isTouchDevice);
-    
-    // Create controls if plugin is available or if we're on a touch device
-    if (window.RexPlugins && (isTouchDevice || window.location.search.includes('debug=1'))) {
-      console.log('Creating virtual controls...');
-      
-      try {
-        // Create joystick base (semi-transparent gray circle)
-        const base = this.add.circle(100, this.cameras.main.height - 100, 60, 0x888888, 0.5);
-        base.setScrollFactor(0);
-        base.setDepth(1000);
-          
-        // Create joystick thumb (white circle)
-        const thumb = this.add.circle(100, this.cameras.main.height - 100, 30, 0xffffff, 0.8);
-        thumb.setScrollFactor(0);
-        thumb.setDepth(1001);
-          
-        // Create the joystick
-        this.joyStick = this.plugins.get('rexvirtualjoystickplugin').add(this, {
-          x: 100,
-          y: this.cameras.main.height - 100,
-          radius: 60,
-          base: base,
-          thumb: thumb
-        });
-        
-        console.log('Virtual joystick created successfully');
-      } catch (e) {
-        console.error('Error creating virtual joystick:', e);
-      }
-      
-      // Create jump button
-      this.jumpButton = this.add.circle(
-        this.cameras.main.width - 100, 
-        this.cameras.main.height - 100, 
-        50, 
-        0x4CAF50, 
-        0.8
-      ).setDepth(1000).setScrollFactor(0);
-      
-      // Add text to jump button
-      this.jumpText = this.add.text(
-        this.jumpButton.x, 
-        this.jumpButton.y, 
-        'JUMP', 
-        { 
-          font: '16px Arial', 
-          fill: '#ffffff',
-          fontWeight: 'bold'
-        }
-      ).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
-      
-      // Make jump button interactive
-      this.jumpButton.setInteractive();
-      
-      // Jump button events
-      this.jumpButton.on('pointerdown', () => {
-        this.touchJump = true;
-        this.jumpButton.setFillStyle(0x388E3C, 0.8);
-      });
-      
-      this.jumpButton.on('pointerup', () => {
-        this.touchJump = false;
-        this.jumpButton.setFillStyle(0x4CAF50, 0.8);
-      });
-      
-      this.jumpButton.on('pointerout', () => {
-        this.touchJump = false;
-        this.jumpButton.setFillStyle(0x4CAF50, 0.8);
-      });
-    }
-    
     // Pause functionality
     this.isPaused = false;
+    this.pauseMenu = null;
     this.input.keyboard.on('keydown-ESC', () => {
       this.togglePause();
     });
-    
-    // Create virtual controls after camera is set up
-    if (typeof this.createTouchControls === 'function') {
-      this.createTouchControls();
-    }
+
+    // Mobile touch controls
+    this.createTouchControls();
+
+    // Touch state
+    this.touchLeft = false;
+    this.touchRight = false;
+    this.touchJump = false;
     
     // Ladder state
     this.isOnLadder = false;
@@ -1846,13 +1605,102 @@ class GameScene extends Phaser.Scene {
     
     if (this.pauseMenu) {
       this.pauseMenu.destroy();
+      this.pauseMenu = null;
     }
   }
-  
+
   createTouchControls() {
-    // This method is kept for compatibility but does nothing
-    // as we're now using the virtual joystick and jump button from createVirtualControls()
-    console.log('Using virtual joystick and jump button for touch controls');
+    // Create semi-transparent control buttons for mobile
+    const buttonAlpha = 0.3;
+    const buttonSize = 80;
+
+    // Left button
+    this.leftButton = this.add.circle(
+      80,
+      this.cameras.main.height - 80,
+      buttonSize / 2,
+      0x0000ff,
+      buttonAlpha,
+    );
+    this.leftButton.setScrollFactor(0);
+    this.leftButton.setInteractive();
+
+    this.add
+      .text(80, this.cameras.main.height - 80, "←", {
+        fontSize: "40px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+
+    // Right button
+    this.rightButton = this.add.circle(
+      200,
+      this.cameras.main.height - 80,
+      buttonSize / 2,
+      0x0000ff,
+      buttonAlpha,
+    );
+    this.rightButton.setScrollFactor(0);
+    this.rightButton.setInteractive();
+
+    this.add
+      .text(200, this.cameras.main.height - 80, "→", {
+        fontSize: "40px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+
+    // Jump button
+    this.jumpButton = this.add.circle(
+      this.cameras.main.width - 80,
+      this.cameras.main.height - 80,
+      buttonSize / 2,
+      0xff0000,
+      buttonAlpha,
+    );
+    this.jumpButton.setScrollFactor(0);
+    this.jumpButton.setInteractive();
+
+    this.add
+      .text(this.cameras.main.width - 80, this.cameras.main.height - 80, "↑", {
+        fontSize: "40px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+
+    // Touch events
+    this.leftButton.on("pointerdown", () => {
+      this.touchLeft = true;
+    });
+    this.leftButton.on("pointerup", () => {
+      this.touchLeft = false;
+    });
+    this.leftButton.on("pointerout", () => {
+      this.touchLeft = false;
+    });
+
+    this.rightButton.on("pointerdown", () => {
+      this.touchRight = true;
+    });
+    this.rightButton.on("pointerup", () => {
+      this.touchRight = false;
+    });
+    this.rightButton.on("pointerout", () => {
+      this.touchRight = false;
+    });
+
+    this.jumpButton.on("pointerdown", () => {
+      this.touchJump = true;
+    });
+    this.jumpButton.on("pointerup", () => {
+      this.touchJump = false;
+    });
+    this.jumpButton.on("pointerout", () => {
+      this.touchJump = false;
+    });
   }
 
   playerDeath(source = null) {
@@ -1971,13 +1819,6 @@ class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Update touch controls from joystick
-    if (this.joyStick) {
-      const joyStickValueX = this.joyStick.forceX;
-      this.touchLeft = joyStickValueX < -0.2;
-      this.touchRight = joyStickValueX > 0.2;
-    }
-    
     // Reset moving platform flag at the start of each frame
     // It will be set again by handlePlatformCollision if player is still on a platform
     if (this.player.isOnMovingPlatform) {
@@ -2301,5 +2142,4 @@ class GameScene extends Phaser.Scene {
   }
 }
 
-// Make GameScene available globally
-window.GameScene = GameScene;
+
