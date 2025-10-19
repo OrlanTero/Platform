@@ -222,9 +222,19 @@ class GameScene extends Phaser.Scene {
       this,
     );
 
-    // Camera follows player - bounds will be updated after calculating rightmost object
-    this.cameras.main.setBounds(0, -worldHeight, worldWidth, worldHeight * 3);
+    // Camera follows player - update bounds to match calculated rightmost object
+    if (this.rightmostObjectX) {
+      // Use calculated bounds from map
+      this.cameras.main.setBounds(0, -worldHeight, this.rightmostObjectX, worldHeight * 3);
+      console.log(`📷 Camera bounds set to calculated rightmost: ${this.rightmostObjectX}`);
+    } else {
+      // Fallback to world width
+      this.cameras.main.setBounds(0, -worldHeight, worldWidth, worldHeight * 3);
+      console.log(`📷 Camera bounds set to world width: ${worldWidth}`);
+    }
+    
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    console.log(`📷 Camera following player: ${this.cameras.main.follow === this.player}`);
     
     // Detect mobile device for appropriate zoom level
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
@@ -471,11 +481,7 @@ class GameScene extends Phaser.Scene {
     // Update physics world bounds to match the rightmost object
     this.physics.world.setBounds(0, 0, this.rightmostObjectX, this.physics.world.bounds.height);
     
-    // Update camera bounds to match
-    this.cameras.main.setBounds(0, -this.worldHeight, this.rightmostObjectX, this.worldHeight * 3);
-    
     console.log(`🌍 Updated world bounds: ${this.rightmostObjectX.toFixed(0)} x ${this.physics.world.bounds.height}`);
-    console.log(`📷 Updated camera bounds: ${this.rightmostObjectX.toFixed(0)} x ${this.worldHeight * 3}`);
   }
 
   createDefaultMap() {
@@ -2438,6 +2444,11 @@ class GameScene extends Phaser.Scene {
     // Reset if player falls below the lowest object + margin
     if (this.player.y > this.lowestObjectY) {
       this.playerDeath("Fell off map");
+    }
+    
+    // Debug: Log player position when moving right
+    if (this.player.x > 3000 && this.time.now % 1000 < 16) {
+      console.log(`🎮 Player X: ${this.player.x.toFixed(0)}, Camera X: ${this.cameras.main.scrollX.toFixed(0)}, Right bound: ${this.rightmostObjectX}`);
     }
   }
   
