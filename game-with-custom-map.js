@@ -1726,7 +1726,7 @@ class GameScene extends Phaser.Scene {
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 4,
-      padding: { x: 10, y: 40 }
+      padding: { x: 10, y: 80 }
     });
     this.livesText.setScrollFactor(0);
     this.livesText.setOrigin(0, 0);
@@ -1743,7 +1743,7 @@ class GameScene extends Phaser.Scene {
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 4,
-        padding: { x: 8, y: 40 }
+        padding: { x: 8, y: 80 }
       }
     );
     this.pauseButton.setOrigin(1, 0);
