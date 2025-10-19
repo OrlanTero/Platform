@@ -416,21 +416,7 @@
 
      
 
-        // Add fullscreen button (top right)
-        const fullscreenButton = document.createElement('div');
-        fullscreenButton.className = 'top-button';
-        fullscreenButton.id = 'fullscreen-button';
-        fullscreenButton.textContent = '⛶';
-        fullscreenButton.style.cursor = 'pointer';
-        fullscreenButton.style.fontSize = '32px';
-        fullscreenButton.style.color = '#ffffff';
-        fullscreenButton.style.webkitTextStroke = '4px #000';
-        fullscreenButton.style.textShadow = 'none';
-        fullscreenButton.style.pointerEvents = 'auto';
-        fullscreenButton.style.fontWeight = 'bold';
-        fullscreenButton.style.opacity = '1';
-        fullscreenButton.onclick = toggleFullscreen;
-        document.body.appendChild(fullscreenButton);
+  
 
         // Handle fullscreen change events with cross-browser support
         const fullscreenChangeHandler = () => {

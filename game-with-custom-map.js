@@ -9,12 +9,31 @@ class GameScene extends Phaser.Scene {
     // Get level data passed from game config or URL
     this.customMapData = data.levelData || null;
     this.currentLevel = data.level || 1;
+    this.soundsReady = false;
     console.log(`Initializing Level ${this.currentLevel}`);
   }
 
   preload() {
     // Create character sprite programmatically
     this.createCharacterSprite();
+
+    // Load sound effects (using free sound URLs)
+    // Jump sound
+    this.load.audio('jump', 'https://assets.mixkit.co/active_storage/sfx/2043/2043-preview.mp3');
+    // Checkpoint sound
+    this.load.audio('checkpoint', 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+    // Death sound
+    this.load.audio('death', 'https://assets.mixkit.co/active_storage/sfx/2026/2026-preview.mp3');
+    // Victory sound
+    this.load.audio('victory', 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+    // Game over sound
+    this.load.audio('gameover', 'https://assets.mixkit.co/active_storage/sfx/2027/2027-preview.mp3');
+    
+    // Handle sound loading completion
+    this.load.once('complete', () => {
+      console.log('Sounds loaded successfully');
+      this.soundsReady = true;
+    });
 
     // If no level data was passed, try localStorage (for backwards compatibility)
     if (!this.customMapData) {
@@ -216,6 +235,15 @@ class GameScene extends Phaser.Scene {
     if (this.endFlagSprite) {
       this.uiCamera.ignore(this.endFlagSprite);
     }
+    
+    // Unlock audio context on first user interaction (required for mobile browsers)
+    this.input.once('pointerdown', () => {
+      if (this.sound.context && this.sound.context.state === 'suspended') {
+        this.sound.context.resume().then(() => {
+          console.log('Audio context resumed');
+        });
+      }
+    });
 
     // Keyboard controls
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -799,14 +827,15 @@ class GameScene extends Phaser.Scene {
     this.checkpoints.add(checkpoint);
     checkpoint.body.debugBodyColor = 0x00ff00; // Green debug color for checkpoints
     
-    // Add "CP" text
+    // Add "CP" text (hidden by default, shown only when activated)
     const cpText = this.add
-      .text(x + width / 2, y + height / 2, "CP", {
-        fontSize: "12px",
+      .text(x + width / 2, y + height / 2, "✓", {
+        fontSize: "16px",
         fontStyle: "bold",
-        color: "#ffffff",
+        color: "#00ff00",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setVisible(false); // Hide by default
     
     // Store text reference for later color change
     checkpoint.setData("text", cpText);
@@ -814,30 +843,43 @@ class GameScene extends Phaser.Scene {
     console.log(`Checkpoint created at (${x}, ${y})`);
   }
 
-  activateCheckpoint(player, checkpoint) {
-    console.log("Checkpoint overlap detected!");
-    
-    // Only activate if not already activated
+  handleCheckpointOverlap(player, checkpoint) {
+    // Check if checkpoint is already activated
     if (checkpoint.getData("activated")) {
-      console.log("Checkpoint already activated, skipping...");
       return;
     }
-    
-    // Mark as activated
+
+    // Activate checkpoint
     checkpoint.setData("activated", true);
-    
-    // Update current checkpoint - store the checkpoint position
     this.currentCheckpoint = {
-      x: checkpoint.getData("x"),
-      y: checkpoint.getData("y"),
+      x: checkpoint.x,
+      y: checkpoint.y,
     };
+
+    // Play checkpoint sound
+    if (this.soundsReady && this.sound && this.sound.get('checkpoint')) {
+      try {
+        this.sound.play('checkpoint', { volume: 0.3 });
+      } catch (e) {
+        console.log('Could not play checkpoint sound:', e);
+      }
+    }
+
+    // Change checkpoint color to indicate activation
+    checkpoint.setTint(0x00ff00); // Green tint
     
-    console.log(`✓ Checkpoint activated! Will respawn at (${this.currentCheckpoint.x}, ${this.currentCheckpoint.y})`);
-    
-    // Create active checkpoint texture (green)
-    const width = checkpoint.getData("width");
-    const height = checkpoint.getData("height");
-    const graphics = this.add.graphics();
+    // Show and change text
+    const cpText = checkpoint.getData("text");
+    if (cpText) {
+      cpText.setVisible(true);
+      cpText.setColor("#00ff00");
+    }
+
+    console.log(`Checkpoint activated at (${checkpoint.x}, ${checkpoint.y})`);
+  }
+
+  createCheckpointGraphics(width, height, active = false) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
     
     // Draw checkpoint flag pole
     const poleX = width / 2 - 2;
@@ -973,6 +1015,15 @@ class GameScene extends Phaser.Scene {
   }
   
   showVictory() {
+    // Play victory sound
+    if (this.soundsReady && this.sound && this.sound.get('victory')) {
+      try {
+        this.sound.play('victory', { volume: 0.4 });
+      } catch (e) {
+        console.log('Could not play victory sound:', e);
+      }
+    }
+    
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
@@ -1090,6 +1141,15 @@ class GameScene extends Phaser.Scene {
   
   showGameOver() {
     this.gameOver = true;
+    
+    // Play game over sound
+    if (this.soundsReady && this.sound && this.sound.get('gameover')) {
+      try {
+        this.sound.play('gameover', { volume: 0.4 });
+      } catch (e) {
+        console.log('Could not play gameover sound:', e);
+      }
+    }
     
     // Stop player
     this.player.setVelocity(0, 0);
@@ -1546,12 +1606,12 @@ class GameScene extends Phaser.Scene {
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 4,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      padding: { x: 10, y: 5 }
+      padding: { x: 10, y: 40 }
     });
     this.livesText.setScrollFactor(0);
     this.livesText.setOrigin(0, 0);
     this.livesText.setDepth(100000);
+    this.livesText.setVisible(true); // Explicitly set visible
     
     // Pause button (top right) - will be rendered by UI camera only
     this.pauseButton = this.add.text(
@@ -1563,13 +1623,13 @@ class GameScene extends Phaser.Scene {
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 4,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        padding: { x: 8, y: 4 }
+        padding: { x: 8, y: 40 }
       }
     );
     this.pauseButton.setOrigin(1, 0);
     this.pauseButton.setScrollFactor(0);
     this.pauseButton.setDepth(100000);
+    this.pauseButton.setVisible(true); // Explicitly set visible
     this.pauseButton.setInteractive({ useHandCursor: true });
     this.pauseButton.on('pointerdown', () => {
       this.togglePause();
@@ -1578,9 +1638,11 @@ class GameScene extends Phaser.Scene {
     // Make main camera ignore UI elements (they'll only be seen by UI camera)
     this.cameras.main.ignore([this.livesText, this.pauseButton]);
     
+    // Ensure UI camera is rendering these elements
     console.log(`UI created - Camera: ${cam.width}x${cam.height}`);
     console.log(`Lives: pos(${this.livesText.x}, ${this.livesText.y}), visible: ${this.livesText.visible}, depth: ${this.livesText.depth}`);
     console.log(`Pause: pos(${this.pauseButton.x}, ${this.pauseButton.y}), visible: ${this.pauseButton.visible}, depth: ${this.pauseButton.depth}`);
+    console.log(`UI Camera exists: ${this.uiCamera ? 'yes' : 'no'}`);
   }
   
   togglePause() {
@@ -1903,6 +1965,15 @@ class GameScene extends Phaser.Scene {
 
     console.log(`Player died! Cause: ${deathCause}`); // Debug log
 
+    // Play death sound
+    if (this.soundsReady && this.sound && this.sound.get('death')) {
+      try {
+        this.sound.play('death', { volume: 0.3 });
+      } catch (e) {
+        console.log('Could not play death sound:', e);
+      }
+    }
+
     // Decrease lives
     this.lives--;
     this.livesText.setText(`Lives: ${this.lives}/${this.maxLives}`);
@@ -2102,7 +2173,15 @@ class GameScene extends Phaser.Scene {
       // Jump - allow jumping when on the ground or on a moving platform
       const canJump = this.player.body.touching.down || this.player.isOnMovingPlatform;
       if ((this.cursors.up.isDown || this.touchJump) && canJump) {
-        this.player.setVelocityY(-330);
+        this.player.setVelocityY(-350);
+        // Play jump sound
+        if (this.soundsReady && this.sound && this.sound.get('jump')) {
+          try {
+            this.sound.play('jump', { volume: 0.2 });
+          } catch (e) {
+            console.log('Could not play jump sound:', e);
+          }
+        }
         // Player is no longer on a platform if they jump
         this.player.isOnMovingPlatform = false;
         this.player.movingPlatform = null;
