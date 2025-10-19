@@ -1625,18 +1625,19 @@ class GameScene extends Phaser.Scene {
     
     // Create semi-transparent control buttons for mobile with improved styling
     const buttonAlpha = 0.5;
-    const buttonRadius = 50;
-    const buttonSize = buttonRadius * 2;
+    const buttonRadius = 45;
+    const buttonSize = 100; // Fixed square size
     const buttonColor = 0x333333;
     const activeColor = 0x555555;
 
-    // Helper function to create circular button texture
+    // Helper function to create circular button texture with perfect circle
     const createButtonTexture = (key, color, alpha) => {
       const graphics = this.make.graphics({ x: 0, y: 0, add: false });
       graphics.fillStyle(color, alpha);
-      graphics.fillCircle(buttonRadius, buttonRadius, buttonRadius);
+      // Draw circle at center of square canvas
+      graphics.fillCircle(buttonSize / 2, buttonSize / 2, buttonRadius);
       graphics.lineStyle(3, 0xffffff, 0.3);
-      graphics.strokeCircle(buttonRadius, buttonRadius, buttonRadius);
+      graphics.strokeCircle(buttonSize / 2, buttonSize / 2, buttonRadius);
       graphics.generateTexture(key, buttonSize, buttonSize);
       graphics.destroy();
     };
@@ -1650,14 +1651,14 @@ class GameScene extends Phaser.Scene {
     // Store button references for multi-touch
     this.touchButtons = [];
     
-    // Left button with larger hit area for better touch detection
+    // Left button - use natural texture size (no stretching)
     this.leftButton = this.add.image(80, this.cameras.main.height - 80, 'controlButton');
     this.leftButton.setScrollFactor(0);
-    this.leftButton.setInteractive({ useHandCursor: false, pixelPerfect: false });
     this.leftButton.setDepth(10000);
-    this.leftButton.setDisplaySize(buttonSize, buttonSize);
-    // Increase hit area for easier touching
-    this.leftButton.input.hitArea.setTo(-10, -10, buttonSize + 20, buttonSize + 20);
+    this.leftButton.setInteractive(
+      new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
+      Phaser.Geom.Circle.Contains
+    );
     this.touchButtons.push(this.leftButton);
 
     this.leftButtonText = this.add
@@ -1670,14 +1671,14 @@ class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(10001);
 
-    // Right button with larger hit area for better touch detection
+    // Right button - use natural texture size (no stretching)
     this.rightButton = this.add.image(200, this.cameras.main.height - 80, 'controlButton');
     this.rightButton.setScrollFactor(0);
-    this.rightButton.setInteractive({ useHandCursor: false, pixelPerfect: false });
     this.rightButton.setDepth(10000);
-    this.rightButton.setDisplaySize(buttonSize, buttonSize);
-    // Increase hit area for easier touching
-    this.rightButton.input.hitArea.setTo(-10, -10, buttonSize + 20, buttonSize + 20);
+    this.rightButton.setInteractive(
+      new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
+      Phaser.Geom.Circle.Contains
+    );
     this.touchButtons.push(this.rightButton);
 
     this.rightButtonText = this.add
@@ -1690,18 +1691,18 @@ class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(10001);
 
-    // Jump button with larger hit area for better touch detection
+    // Jump button - use natural texture size (no stretching)
     this.jumpButton = this.add.image(
       this.cameras.main.width - 80,
       this.cameras.main.height - 80,
       'jumpButton'
     );
     this.jumpButton.setScrollFactor(0);
-    this.jumpButton.setInteractive({ useHandCursor: false, pixelPerfect: false });
     this.jumpButton.setDepth(10000);
-    this.jumpButton.setDisplaySize(buttonSize, buttonSize);
-    // Increase hit area for easier touching
-    this.jumpButton.input.hitArea.setTo(-10, -10, buttonSize + 20, buttonSize + 20);
+    this.jumpButton.setInteractive(
+      new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
+      Phaser.Geom.Circle.Contains
+    );
     this.touchButtons.push(this.jumpButton);
 
     this.jumpButtonText = this.add
@@ -1717,7 +1718,25 @@ class GameScene extends Phaser.Scene {
     // Multi-touch support - track active pointers
     this.activePointers = new Map();
     
+    // Debug text to show touch state
+    this.touchDebugText = this.add.text(400, 20, 'Touch: None', {
+      fontSize: '20px',
+      color: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 }
+    })
+    .setOrigin(0.5)
+    .setScrollFactor(0)
+    .setDepth(20000);
+    
     console.log('Touch controls initialized with multi-touch support');
+    console.log(`Phaser active pointers: ${this.input.pointersTotal}`);
+
+    // Helper to update debug text
+    const updateDebugText = () => {
+      const active = Array.from(this.activePointers.values());
+      this.touchDebugText.setText(`Touch: ${active.length > 0 ? active.join(' + ') : 'None'} | L:${this.touchLeft} R:${this.touchRight} J:${this.touchJump}`);
+    };
 
     // Left button events with smooth feedback
     this.leftButton.on("pointerdown", (pointer) => {
@@ -1725,6 +1744,7 @@ class GameScene extends Phaser.Scene {
       this.activePointers.set(pointer.id, 'left');
       this.leftButton.setTexture('controlButtonActive');
       this.leftButton.setScale(0.95);
+      updateDebugText();
       console.log(`Left pressed (pointer ${pointer.id}), active: ${Array.from(this.activePointers.values()).join(', ')}`);
     });
     this.leftButton.on("pointerup", (pointer) => {
@@ -1734,6 +1754,7 @@ class GameScene extends Phaser.Scene {
         this.leftButton.setTexture('controlButton');
         this.leftButton.setScale(1);
       }
+      updateDebugText();
     });
     this.leftButton.on("pointerout", (pointer) => {
       this.activePointers.delete(pointer.id);
@@ -1742,6 +1763,7 @@ class GameScene extends Phaser.Scene {
         this.leftButton.setTexture('controlButton');
         this.leftButton.setScale(1);
       }
+      updateDebugText();
     });
 
     // Right button events with smooth feedback
@@ -1750,6 +1772,7 @@ class GameScene extends Phaser.Scene {
       this.activePointers.set(pointer.id, 'right');
       this.rightButton.setTexture('controlButtonActive');
       this.rightButton.setScale(0.95);
+      updateDebugText();
       console.log(`Right pressed (pointer ${pointer.id}), active: ${Array.from(this.activePointers.values()).join(', ')}`);
     });
     this.rightButton.on("pointerup", (pointer) => {
@@ -1759,6 +1782,7 @@ class GameScene extends Phaser.Scene {
         this.rightButton.setTexture('controlButton');
         this.rightButton.setScale(1);
       }
+      updateDebugText();
     });
     this.rightButton.on("pointerout", (pointer) => {
       this.activePointers.delete(pointer.id);
@@ -1767,6 +1791,7 @@ class GameScene extends Phaser.Scene {
         this.rightButton.setTexture('controlButton');
         this.rightButton.setScale(1);
       }
+      updateDebugText();
     });
 
     // Jump button events with smooth feedback
@@ -1775,6 +1800,7 @@ class GameScene extends Phaser.Scene {
       this.activePointers.set(pointer.id, 'jump');
       this.jumpButton.setTexture('jumpButtonActive');
       this.jumpButton.setScale(0.95);
+      updateDebugText();
       console.log(`Jump pressed (pointer ${pointer.id}), active: ${Array.from(this.activePointers.values()).join(', ')}`);
     });
     this.jumpButton.on("pointerup", (pointer) => {
@@ -1784,6 +1810,7 @@ class GameScene extends Phaser.Scene {
         this.jumpButton.setTexture('jumpButton');
         this.jumpButton.setScale(1);
       }
+      updateDebugText();
     });
     this.jumpButton.on("pointerout", (pointer) => {
       this.activePointers.delete(pointer.id);
@@ -1792,6 +1819,7 @@ class GameScene extends Phaser.Scene {
         this.jumpButton.setTexture('jumpButton');
         this.jumpButton.setScale(1);
       }
+      updateDebugText();
     });
   }
 
