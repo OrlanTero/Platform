@@ -10,28 +10,21 @@ class GameScene extends Phaser.Scene {
     this.customMapData = data.levelData || null;
     this.currentLevel = data.level || 1;
     this.soundsReady = false;
-    console.log(`Initializing Level ${this.currentLevel}`);
   }
 
   preload() {
     // Create character sprite programmatically
     this.createCharacterSprite();
 
-    // Load sound effects (using free sound URLs)
-    // Jump sound
-    this.load.audio('jump', 'https://assets.mixkit.co/active_storage/sfx/2043/2043-preview.mp3');
-    // Checkpoint sound
-    this.load.audio('checkpoint', 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
-    // Death sound
-    this.load.audio('death', 'https://assets.mixkit.co/active_storage/sfx/2026/2026-preview.mp3');
-    // Victory sound
-    this.load.audio('victory', 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
-    // Game over sound
-    this.load.audio('gameover', 'https://assets.mixkit.co/active_storage/sfx/2027/2027-preview.mp3');
+    // Load sound effects from local files
+    this.load.audio('jump', 'assets/sounds/jump.mp3');
+    this.load.audio('checkpoint', 'assets/sounds/checkpoint.mp3');
+    this.load.audio('death', 'assets/sounds/death.mp3');
+    this.load.audio('victory', 'assets/sounds/victory.mp3');
+    this.load.audio('gameover', 'assets/sounds/gameover.mp3');
     
     // Handle sound loading completion
     this.load.once('complete', () => {
-      console.log('Sounds loaded successfully');
       this.soundsReady = true;
     });
 
@@ -125,10 +118,6 @@ class GameScene extends Phaser.Scene {
     this.player.body.setSize(14, 30); // Adjust size to match player sprite
     this.player.body.setOffset(3, 0); // Center the body
     this.player.body.active = true; // Explicitly set body to active
-    
-    console.log(
-      `Player created at (${this.player.x}, ${this.player.y}). Body active: ${this.player.body ? this.player.body.active : "N/A"}, enable: ${this.player.body ? this.player.body.enable : "N/A"}`,
-    );
 
     // Add collisions
     this.physics.add.collider(this.player, this.platforms, (player, platform) => {
@@ -160,7 +149,7 @@ class GameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.player,
       this.checkpoints,
-      this.activateCheckpoint,
+      this.handleCheckpointOverlap,
       null,
       this,
     );
@@ -170,7 +159,6 @@ class GameScene extends Phaser.Scene {
       this.player,
       this.deadlyObjects,
       (player, deadlyObject) => {
-        console.log("Player overlapped with Deadly Object!"); // Debug log
         this.playerDeath(deadlyObject);
       },
       (player, deadlyObject) => {
@@ -183,7 +171,6 @@ class GameScene extends Phaser.Scene {
       this.player,
       this.spikes,
       (player, spikeObject) => {
-        console.log("Player overlapped with Spikes!"); // Debug log
         this.playerDeath(spikeObject);
       },
       (player, spikeObject) => {
@@ -195,7 +182,6 @@ class GameScene extends Phaser.Scene {
       this.player,
       this.traps,
       (player, trapObject) => {
-        console.log("Player overlapped with Trap!"); // Debug log
         this.playerDeath(trapObject);
       },
       (player, trapObject) => {
@@ -257,9 +243,7 @@ class GameScene extends Phaser.Scene {
     // Unlock audio context on first user interaction (required for mobile browsers)
     this.input.once('pointerdown', () => {
       if (this.sound.context && this.sound.context.state === 'suspended') {
-        this.sound.context.resume().then(() => {
-          console.log('Audio context resumed');
-        });
+        this.sound.context.resume();
       }
     });
 
@@ -436,14 +420,10 @@ class GameScene extends Phaser.Scene {
       platform.setData("originalKey", key);
       platform.setData("width", width);
       platform.setData("height", height);
-      
-      console.log(`Platform with trigger effect created: ${objData.effectType}`);
     }
   }
 
   createMovingPlatform(obj) {
-    console.log("Creating moving platform with data:", obj);
-
     const colorHex =
       typeof obj.color === "string"
         ? parseInt(obj.color.replace("#", "0x"))
@@ -545,10 +525,6 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    console.log(
-      `Platform created with rotation: ${obj.rotation}°, direction: (${moveDirX.toFixed(2)}, ${moveDirY.toFixed(2)})`,
-    );
-
     // Apply rotation to the platform
     if (obj.rotation) {
       // Set the visual rotation
@@ -624,9 +600,6 @@ class GameScene extends Phaser.Scene {
     // Add to the deadly objects group
     this.deadlyObjects.add(floor);
     floor.body.active = true; // Explicitly set body to active
-    console.log(
-      `Deadly Floor created at (${x}, ${y}), added to deadlyObjects group. Body active: ${floor.body ? floor.body.active : "N/A"}, enable: ${floor.body ? floor.body.enable : "N/A"}`,
-    );
 
     return floor;
   }
@@ -680,9 +653,6 @@ class GameScene extends Phaser.Scene {
     // Add to the spikes group
     this.spikes.add(container);
     container.body.active = true; // Explicitly set body to active
-    console.log(
-      `Spikes created at (${x}, ${y}), added to spikes group. Body active: ${container.body ? container.body.active : "N/A"}, enable: ${container.body ? container.body.enable : "N/A"}`,
-    );
 
     // Store the original dimensions for reference
     container.width = totalWidth;
@@ -857,8 +827,6 @@ class GameScene extends Phaser.Scene {
     
     // Store text reference for later color change
     checkpoint.setData("text", cpText);
-    
-    console.log(`Checkpoint created at (${x}, ${y})`);
   }
 
   handleCheckpointOverlap(player, checkpoint) {
@@ -879,7 +847,7 @@ class GameScene extends Phaser.Scene {
       try {
         this.sound.play('checkpoint', { volume: 0.3 });
       } catch (e) {
-        console.log('Could not play checkpoint sound:', e);
+        // Silently fail if sound can't play
       }
     }
 
@@ -892,8 +860,6 @@ class GameScene extends Phaser.Scene {
       cpText.setVisible(true);
       cpText.setColor("#00ff00");
     }
-
-    console.log(`Checkpoint activated at (${checkpoint.x}, ${checkpoint.y})`);
   }
 
   createCheckpointGraphics(width, height, active = false) {
@@ -1038,7 +1004,7 @@ class GameScene extends Phaser.Scene {
       try {
         this.sound.play('victory', { volume: 0.4 });
       } catch (e) {
-        console.log('Could not play victory sound:', e);
+        // Silently fail if sound can't play
       }
     }
     
@@ -1177,7 +1143,7 @@ class GameScene extends Phaser.Scene {
       try {
         this.sound.play('gameover', { volume: 0.4 });
       } catch (e) {
-        console.log('Could not play gameover sound:', e);
+        // Silently fail if sound can't play
       }
     }
     
@@ -1377,9 +1343,6 @@ class GameScene extends Phaser.Scene {
     // Add to the traps group
     this.traps.add(trap);
     trap.body.active = true; // Explicitly set body to active
-    console.log(
-      `Trap created at (${x}, ${y}), added to traps group. Body active: ${trap.body ? trap.body.active : "N/A"}, enable: ${trap.body ? trap.body.enable : "N/A"}`,
-    );
 
     return trap;
   }
@@ -1426,8 +1389,6 @@ class GameScene extends Phaser.Scene {
       top: y,
       bottom: y + height
     });
-    
-    console.log(`Ladder created at (${x}, ${y}) with size ${width}x${height}`);
     
     return ladder;
   }
@@ -1677,21 +1638,11 @@ class GameScene extends Phaser.Scene {
       this.togglePause();
     });
     
-    // Make main camera ignore UI elements (they'll only be seen by UI camera)
+    // Make main camera ignore UI elements (they should only be rendered by UI camera)
     this.cameras.main.ignore([this.livesText, this.pauseButton]);
-    
-    // Ensure UI camera is rendering these elements
-    console.log(`UI created - Camera: ${cam.width}x${cam.height}`);
-    console.log(`Lives: pos(${this.livesText.x}, ${this.livesText.y}), visible: ${this.livesText.visible}, depth: ${this.livesText.depth}`);
-    console.log(`Pause: pos(${this.pauseButton.x}, ${this.pauseButton.y}), visible: ${this.pauseButton.visible}, depth: ${this.pauseButton.depth}`);
-    console.log(`UI Camera exists: ${this.uiCamera ? 'yes' : 'no'}`);
   }
   
   togglePause() {
-    if (this.levelComplete || this.gameOver) {
-      return; // Don't allow pause when game is over
-    }
-    
     if (this.isPaused) {
       this.resumeGame();
     } else {
@@ -1795,11 +1746,8 @@ class GameScene extends Phaser.Scene {
     
     // Only create controls on mobile devices
     if (!isMobile) {
-      console.log('Desktop detected - skipping mobile controls');
       return;
     }
-    
-    console.log('Mobile detected - creating touch controls');
     
     // Create semi-transparent control buttons for mobile - scaled down for zoom
     const buttonAlpha = 0.5;
@@ -1810,6 +1758,10 @@ class GameScene extends Phaser.Scene {
 
     // Helper function to create circular button texture with perfect circle
     const createButtonTexture = (key, color, alpha) => {
+      // Check if texture already exists to prevent duplicates on scene restart
+      if (this.textures.exists(key)) {
+        this.textures.remove(key);
+      }
       const graphics = this.make.graphics({ x: 0, y: 0, add: false });
       graphics.fillStyle(color, alpha);
       // Draw circle at center of square canvas
@@ -1849,6 +1801,9 @@ class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(100001);
+    
+    // Make main camera ignore touch controls (only render on UI camera)
+    this.cameras.main.ignore([this.leftButton, this.leftButtonText]);
 
     // Right button - scaled down and ensure no stretching with scale instead of setDisplaySize
     this.rightButton = this.add.image(140, this.cameras.main.height - 60, 'controlButton');
@@ -1870,6 +1825,9 @@ class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(100001);
+    
+    // Make main camera ignore touch controls (only render on UI camera)
+    this.cameras.main.ignore([this.rightButton, this.rightButtonText]);
 
     // Jump button - scaled down and ensure no stretching with scale instead of setDisplaySize
     this.jumpButton = this.add.image(
@@ -1895,29 +1853,12 @@ class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(100001);
+    
+    // Make main camera ignore touch controls (only render on UI camera)
+    this.cameras.main.ignore([this.jumpButton, this.jumpButtonText]);
 
     // Multi-touch support - track active pointers
     this.activePointers = new Map();
-    
-    // Debug text to show touch state - scaled down and higher depth
-    this.touchDebugText = this.add.text(this.cameras.main.width / 2, 50, 'Touch: None', {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: '#000000',
-      padding: { x: 8, y: 4 }
-    })
-    .setOrigin(0.5)
-    .setScrollFactor(0)
-    .setDepth(100000);
-    
-    console.log('Touch controls initialized with multi-touch support');
-    console.log(`Phaser active pointers: ${this.input.pointersTotal}`);
-
-    // Helper to update debug text
-    const updateDebugText = () => {
-      const active = Array.from(this.activePointers.values());
-      this.touchDebugText.setText(`Touch: ${active.length > 0 ? active.join(' + ') : 'None'} | L:${this.touchLeft} R:${this.touchRight} J:${this.touchJump}`);
-    };
 
     // Left button events with smooth feedback
     this.leftButton.on("pointerdown", (pointer) => {
@@ -1925,8 +1866,6 @@ class GameScene extends Phaser.Scene {
       this.activePointers.set(pointer.id, 'left');
       this.leftButton.setTexture('controlButtonActive');
       this.leftButton.setScale(0.95);
-      updateDebugText();
-      console.log(`Left pressed (pointer ${pointer.id}), active: ${Array.from(this.activePointers.values()).join(', ')}`);
     });
     this.leftButton.on("pointerup", (pointer) => {
       this.activePointers.delete(pointer.id);
@@ -1935,7 +1874,6 @@ class GameScene extends Phaser.Scene {
         this.leftButton.setTexture('controlButton');
         this.leftButton.setScale(1);
       }
-      updateDebugText();
     });
     this.leftButton.on("pointerout", (pointer) => {
       this.activePointers.delete(pointer.id);
@@ -1944,7 +1882,6 @@ class GameScene extends Phaser.Scene {
         this.leftButton.setTexture('controlButton');
         this.leftButton.setScale(1);
       }
-      updateDebugText();
     });
 
     // Right button events with smooth feedback
@@ -1953,8 +1890,6 @@ class GameScene extends Phaser.Scene {
       this.activePointers.set(pointer.id, 'right');
       this.rightButton.setTexture('controlButtonActive');
       this.rightButton.setScale(0.95);
-      updateDebugText();
-      console.log(`Right pressed (pointer ${pointer.id}), active: ${Array.from(this.activePointers.values()).join(', ')}`);
     });
     this.rightButton.on("pointerup", (pointer) => {
       this.activePointers.delete(pointer.id);
@@ -1963,7 +1898,6 @@ class GameScene extends Phaser.Scene {
         this.rightButton.setTexture('controlButton');
         this.rightButton.setScale(1);
       }
-      updateDebugText();
     });
     this.rightButton.on("pointerout", (pointer) => {
       this.activePointers.delete(pointer.id);
@@ -1972,7 +1906,6 @@ class GameScene extends Phaser.Scene {
         this.rightButton.setTexture('controlButton');
         this.rightButton.setScale(1);
       }
-      updateDebugText();
     });
 
     // Jump button events with smooth feedback
@@ -1981,8 +1914,6 @@ class GameScene extends Phaser.Scene {
       this.activePointers.set(pointer.id, 'jump');
       this.jumpButton.setTexture('jumpButtonActive');
       this.jumpButton.setScale(0.95);
-      updateDebugText();
-      console.log(`Jump pressed (pointer ${pointer.id}), active: ${Array.from(this.activePointers.values()).join(', ')}`);
     });
     this.jumpButton.on("pointerup", (pointer) => {
       this.activePointers.delete(pointer.id);
@@ -1991,7 +1922,6 @@ class GameScene extends Phaser.Scene {
         this.jumpButton.setTexture('jumpButton');
         this.jumpButton.setScale(1);
       }
-      updateDebugText();
     });
     this.jumpButton.on("pointerout", (pointer) => {
       this.activePointers.delete(pointer.id);
@@ -2000,30 +1930,16 @@ class GameScene extends Phaser.Scene {
         this.jumpButton.setTexture('jumpButton');
         this.jumpButton.setScale(1);
       }
-      updateDebugText();
     });
   }
 
   playerDeath(source = null) {
-    let deathCause = "Unknown";
-    if (typeof source === "string") {
-      deathCause = source;
-    } else if (source && source.texture && source.texture.key) {
-      deathCause = `Collision with ${source.texture.key}`;
-    } else if (source && source.name) {
-      deathCause = `Collision with ${source.name}`; // For container objects like spikes
-    } else if (source) {
-      deathCause = "Collision with an object";
-    }
-
-    console.log(`Player died! Cause: ${deathCause}`); // Debug log
-
     // Play death sound
     if (this.soundsReady && this.sound && this.sound.get('death')) {
       try {
         this.sound.play('death', { volume: 0.3 });
       } catch (e) {
-        console.log('Could not play death sound:', e);
+        // Silently fail if sound can't play
       }
     }
 
