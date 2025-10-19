@@ -24,8 +24,32 @@ class GameScene extends Phaser.Scene {
     this.load.audio('gameover', 'assets/sounds/gameover.mp3');
     
     // Handle sound loading completion
-    this.load.once('complete', () => {
+    this.load.on('complete', () => {
+      // Create sound objects from loaded audio
+      if (this.cache.audio.exists('jump')) {
+        this.sound.add('jump');
+      }
+      if (this.cache.audio.exists('checkpoint')) {
+        this.sound.add('checkpoint');
+      }
+      if (this.cache.audio.exists('death')) {
+        this.sound.add('death');
+      }
+      if (this.cache.audio.exists('victory')) {
+        this.sound.add('victory');
+      }
+      if (this.cache.audio.exists('gameover')) {
+        this.sound.add('gameover');
+      }
+      
       this.soundsReady = true;
+      console.log('✅ All sounds loaded and added to sound manager');
+      console.log('🎵 Jump sound ready?', !!this.sound.get('jump'));
+    });
+    
+    // Handle individual file load errors
+    this.load.on('loaderror', (file) => {
+      console.error('❌ Failed to load:', file.key, file.src);
     });
 
     // If no level data was passed, try localStorage (for backwards compatibility)
@@ -241,11 +265,22 @@ class GameScene extends Phaser.Scene {
     }
     
     // Unlock audio context on first user interaction (required for mobile browsers)
-    this.input.once('pointerdown', () => {
+    const unlockAudio = () => {
       if (this.sound.context && this.sound.context.state === 'suspended') {
-        this.sound.context.resume();
+        this.sound.context.resume().then(() => {
+          console.log('🔊 Audio context resumed, state:', this.sound.context.state);
+        });
+      } else {
+        console.log('🔊 Audio context state:', this.sound.context ? this.sound.context.state : 'no context');
       }
-    });
+    };
+    
+    // Try to unlock on multiple events
+    this.input.once('pointerdown', unlockAudio);
+    this.input.keyboard.once('keydown', unlockAudio);
+    
+    // Also try immediately
+    unlockAudio();
 
     // Keyboard controls
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -843,11 +878,13 @@ class GameScene extends Phaser.Scene {
     };
 
     // Play checkpoint sound
+    console.log('🔊 Attempting checkpoint sound. Ready:', this.soundsReady, 'Sound exists:', !!this.sound.get('checkpoint'));
     if (this.soundsReady && this.sound && this.sound.get('checkpoint')) {
       try {
         this.sound.play('checkpoint', { volume: 0.3 });
+        console.log('✅ Checkpoint sound played');
       } catch (e) {
-        // Silently fail if sound can't play
+        console.error('❌ Checkpoint sound error:', e);
       }
     }
 
@@ -1955,7 +1992,6 @@ class GameScene extends Phaser.Scene {
 
     // Reset player to last checkpoint or spawn point
     const respawnPoint = this.currentCheckpoint || this.spawnPoint;
-    console.log(`Respawning at: (${respawnPoint.x}, ${respawnPoint.y}) - Using ${this.currentCheckpoint ? 'CHECKPOINT' : 'START POSITION'}`);
     this.player.setPosition(respawnPoint.x, respawnPoint.y);
     this.player.setVelocity(0, 0);
 
@@ -1984,8 +2020,6 @@ class GameScene extends Phaser.Scene {
       platform.setData("direction", state.direction);
       platform.setData("previousX", state.startX);
       platform.setData("previousY", state.startY);
-      
-      console.log(`Reset moving platform to (${state.startX}, ${state.startY})`);
     });
     
     // Reset platforms with trigger effects
@@ -2046,7 +2080,6 @@ class GameScene extends Phaser.Scene {
     }
 
     // Reset moving platform flag at the start of each frame
-    // It will be set again by handlePlatformCollision if player is still on a platform
     if (this.player.isOnMovingPlatform) {
       // Check if player is still touching down, if not, clear the flag
       if (!this.player.body.touching.down) {
@@ -2144,12 +2177,22 @@ class GameScene extends Phaser.Scene {
       if ((this.cursors.up.isDown || this.touchJump) && canJump) {
         this.player.setVelocityY(-400);
         // Play jump sound
+        console.log('🔊 Jump attempt. Ready:', this.soundsReady, 'Sound exists:', !!this.sound.get('jump'), 'Context state:', this.sound.context?.state);
+        
+        // Try to resume audio context if suspended
+        if (this.sound.context && this.sound.context.state === 'suspended') {
+          this.sound.context.resume();
+        }
+        
         if (this.soundsReady && this.sound && this.sound.get('jump')) {
           try {
             this.sound.play('jump', { volume: 0.2 });
+            console.log('✅ Jump sound played');
           } catch (e) {
-            console.log('Could not play jump sound:', e);
+            console.error('❌ Jump sound error:', e);
           }
+        } else {
+          console.warn('⚠️ Cannot play jump sound - Ready:', this.soundsReady, 'Has sound system:', !!this.sound, 'Has jump sound:', !!this.sound?.get('jump'));
         }
         // Player is no longer on a platform if they jump
         this.player.isOnMovingPlatform = false;
