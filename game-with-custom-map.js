@@ -118,11 +118,20 @@ class GameScene extends Phaser.Scene {
       base.setInteractive({ useHandCursor: true });
       this.jumpButton.setInteractive({ useHandCursor: true });
       
+      // Enable multi-touch
+      this.input.addPointer();
+      
+      // Track active pointers
+      this.joystickPointerId = null;
+      this.jumpPointerId = null;
+      
       // Joystick drag events
       this.input.on('pointerdown', (pointer) => {
-        // Only activate joystick if touching the left side of the screen
-        if (pointer.x < screenWidth / 2) {
+        // Only activate joystick if touching the left side and no other joystick is active
+        if (pointer.x < screenWidth / 2 && this.joystickPointerId === null) {
+          this.joystickPointerId = pointer.id;
           this.isDragging = true;
+          
           // Update joystick position to touch point
           this.thumb.x = Phaser.Math.Clamp(pointer.x, 10, 110);
           this.thumb.y = screenHeight - 60;
@@ -134,35 +143,40 @@ class GameScene extends Phaser.Scene {
             this.touchRight = dx > 0;
           }
         }
-      });
+      }, this);
       
+      // Handle joystick movement
       this.input.on('pointermove', (pointer) => {
-        if (!this.isDragging) return;
-        
-        // Update thumb position with bounds checking
-        const dx = pointer.x - 60;
-        
-        if (Math.abs(dx) > 20) { // Deadzone
-          this.touchLeft = dx < 0;
-          this.touchRight = dx > 0;
+        // Only process if this is the joystick pointer
+        if (pointer.id === this.joystickPointerId) {
+          // Update thumb position with bounds checking
+          const dx = pointer.x - 60;
           
-          // Limit thumb movement
-          const thumbX = Phaser.Math.Clamp(pointer.x, 10, 110);
-          this.thumb.x = thumbX;
-        } else {
+          if (Math.abs(dx) > 20) { // Deadzone
+            this.touchLeft = dx < 0;
+            this.touchRight = dx > 0;
+            
+            // Limit thumb movement
+            const thumbX = Phaser.Math.Clamp(pointer.x, 10, 110);
+            this.thumb.x = thumbX;
+          } else {
+            this.touchLeft = false;
+            this.touchRight = false;
+            this.thumb.x = 60;
+          }
+        }
+      }, this);
+      
+      // Reset joystick when touch ends
+      this.input.on('pointerup', (pointer) => {
+        if (pointer.id === this.joystickPointerId) {
+          this.isDragging = false;
           this.touchLeft = false;
           this.touchRight = false;
           this.thumb.x = 60;
+          this.joystickPointerId = null;
         }
-      });
-      
-      // Reset joystick when touch ends
-      this.input.on('pointerup', () => {
-        this.isDragging = false;
-        this.touchLeft = false;
-        this.touchRight = false;
-        this.thumb.x = 60;
-      });
+      }, this);
       
       this.isDragging = false;
       this.touchLeft = false;
@@ -172,45 +186,36 @@ class GameScene extends Phaser.Scene {
       // Jump button events - using pointer events with capture phase
       this.jumpButton.setInteractive({ useHandCursor: true });
       
-      // Store the pointer ID when jump button is pressed
+      // Handle jump button with multi-touch support
       this.jumpButton.on('pointerdown', (pointer) => {
-          // Stop propagation to prevent joystick from capturing this event
-          if (pointer.event) pointer.event.stopPropagation();
+        // Only activate jump if no other jump is active
+        if (this.jumpPointerId === null) {
+          this.jumpPointerId = pointer.id;
           this.touchJump = true;
           if (this.jumpButton.setFillStyle) {
-              this.jumpButton.setFillStyle(0x388E3C, 0.8);
+            this.jumpButton.setFillStyle(0x388E3C, 0.8);
           }
-          
-          // Store the pointer ID to track this specific touch
-          this.jumpPointerId = pointer.pointerId;
+        }
       }, this);
       
       this.jumpButton.on('pointerup', (pointer) => {
-          // Only process if it's the same pointer that started the jump
-          if (this.jumpPointerId === pointer.pointerId) {
-              this.touchJump = false;
-              if (this.jumpButton.setFillStyle) {
-                  this.jumpButton.setFillStyle(0x4CAF50, 0.7);
-              }
-              this.jumpPointerId = null;
+        if (pointer.id === this.jumpPointerId) {
+          this.touchJump = false;
+          if (this.jumpButton.setFillStyle) {
+            this.jumpButton.setFillStyle(0x4CAF50, 0.7);
           }
+          this.jumpPointerId = null;
+        }
       }, this);
       
       this.jumpButton.on('pointerout', (pointer) => {
-          // Only process if it's the same pointer that started the jump
-          if (this.jumpPointerId === pointer.pointerId) {
-              this.touchJump = false;
-              if (this.jumpButton.setFillStyle) {
-                  this.jumpButton.setFillStyle(0x4CAF50, 0.7);
-              }
-              this.jumpPointerId = null;
+        if (pointer.id === this.jumpPointerId) {
+          this.touchJump = false;
+          if (this.jumpButton.setFillStyle) {
+            this.jumpButton.setFillStyle(0x4CAF50, 0.7);
           }
-      }, this);
-      
-      // Prevent the joystick from capturing touch events when touching the jump button
-      this.jumpButton.on('pointermove', (pointer) => {
-          // Stop propagation to prevent joystick from capturing this event
-          if (pointer.event) pointer.event.stopPropagation();
+          this.jumpPointerId = null;
+        }
       }, this);
       
       console.log('Virtual controls created successfully');
