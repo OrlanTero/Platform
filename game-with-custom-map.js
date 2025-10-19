@@ -101,9 +101,14 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // Set world bounds
+    // Set world bounds - will be updated after calculating rightmost object
     const worldWidth = this.customMapData?.worldWidth || 2400;
     const worldHeight = this.customMapData?.worldHeight || 600;
+    
+    // Store worldHeight for later use in camera bounds
+    this.worldHeight = worldHeight;
+    
+    // Set initial bounds (will be updated after map loads)
     this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
 
     // Initialize groups
@@ -117,6 +122,9 @@ class GameScene extends Phaser.Scene {
     
     // Store initial states for moving platforms that reset on death
     this.movingPlatformInitialStates = [];
+    
+    // Track the lowest object position for dynamic death boundary
+    this.lowestObjectY = 0;
 
     // Start and end positions
     this.startPosition = null;
@@ -214,7 +222,7 @@ class GameScene extends Phaser.Scene {
       this,
     );
 
-    // Camera follows player - remove vertical bounds restriction for better following
+    // Camera follows player - bounds will be updated after calculating rightmost object
     this.cameras.main.setBounds(0, -worldHeight, worldWidth, worldHeight * 3);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     
@@ -406,6 +414,68 @@ class GameScene extends Phaser.Scene {
         }
       }
     });
+    
+    // Calculate the lowest object position for dynamic death boundary
+    this.calculateLowestObjectPosition();
+  }
+  
+  calculateLowestObjectPosition() {
+    // Find the lowest Y position and rightmost X position among all objects in the map
+    let lowestY = 0;
+    let rightmostX = 0;
+    
+    // Check all object types
+    const allObjects = [
+      ...this.platforms.getChildren(),
+      ...this.movingPlatforms.getChildren(),
+      ...this.deadlyObjects.getChildren(),
+      ...this.spikes.getChildren(),
+      ...this.traps.getChildren(),
+      ...this.ladders.getChildren(),
+      ...this.checkpoints.getChildren()
+    ];
+    
+    console.log(`📊 Calculating boundaries from ${allObjects.length} objects`);
+    
+    allObjects.forEach(obj => {
+      // Calculate the bottom edge of the object
+      const bottomY = obj.y + (obj.displayHeight || obj.height || 0) / 2;
+      if (bottomY > lowestY) {
+        lowestY = bottomY;
+      }
+      
+      // Calculate the right edge of the object
+      const rightX = obj.x + (obj.displayWidth || obj.width || 0) / 2;
+      if (rightX > rightmostX) {
+        rightmostX = rightX;
+      }
+    });
+    
+    // Add margin below the lowest object (200 pixels for fall distance)
+    const fallMargin = 200;
+    this.lowestObjectY = lowestY + fallMargin;
+    
+    // Add margin to the right of the rightmost object (500 pixels for exploration)
+    const rightMargin = 500;
+    this.rightmostObjectX = rightmostX + rightMargin;
+    
+    // Ensure minimum death boundary (at least world height)
+    const worldHeight = this.physics.world.bounds.height;
+    if (this.lowestObjectY < worldHeight) {
+      this.lowestObjectY = worldHeight + fallMargin;
+    }
+    
+    console.log(`💀 Death boundary set at Y: ${this.lowestObjectY.toFixed(0)} (lowest: ${lowestY.toFixed(0)})`);
+    console.log(`➡️ Right boundary set at X: ${this.rightmostObjectX.toFixed(0)} (rightmost: ${rightmostX.toFixed(0)})`);
+    
+    // Update physics world bounds to match the rightmost object
+    this.physics.world.setBounds(0, 0, this.rightmostObjectX, this.physics.world.bounds.height);
+    
+    // Update camera bounds to match
+    this.cameras.main.setBounds(0, -this.worldHeight, this.rightmostObjectX, this.worldHeight * 3);
+    
+    console.log(`🌍 Updated world bounds: ${this.rightmostObjectX.toFixed(0)} x ${this.physics.world.bounds.height}`);
+    console.log(`📷 Updated camera bounds: ${this.rightmostObjectX.toFixed(0)} x ${this.worldHeight * 3}`);
   }
 
   createDefaultMap() {
@@ -427,6 +497,9 @@ class GameScene extends Phaser.Scene {
 
     // Add spikes
     this.createSpikes(750, 560, 100, 20);
+    
+    // Calculate the lowest object position for dynamic death boundary
+    this.calculateLowestObjectPosition();
   }
 
   createPlatform(x, y, width, height, color, objData = null) {
@@ -2362,8 +2435,8 @@ class GameScene extends Phaser.Scene {
       }
     });
     
-    // Reset if player falls off the map (increased threshold to 200 pixels below world)
-    if (this.player.y > this.physics.world.bounds.height + 200) {
+    // Reset if player falls below the lowest object + margin
+    if (this.player.y > this.lowestObjectY) {
       this.playerDeath("Fell off map");
     }
   }

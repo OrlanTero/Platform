@@ -1427,11 +1427,12 @@ class MapEditor {
         const modal = document.getElementById('previewModal');
         const iframe = document.getElementById('previewFrame');
         
-        // Load the game in the iframe
-        iframe.src = '../load-custom-map.html';
+        // Load the game in test mode with cache-busting timestamp
+        const timestamp = Date.now();
+        iframe.src = `../game.html?test=true&t=${timestamp}`;
         modal.classList.add('active');
         
-        console.log('Preview mode opened');
+        console.log('Preview mode opened - using game.html in test mode');
     }
     
     closePreview() {
