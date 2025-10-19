@@ -120,8 +120,19 @@ class GameScene extends Phaser.Scene {
       
       // Joystick drag events
       this.input.on('pointerdown', (pointer) => {
-        if (pointer.y > screenHeight - 120) {
+        // Only activate joystick if touching the left side of the screen
+        if (pointer.x < screenWidth / 2) {
           this.isDragging = true;
+          // Update joystick position to touch point
+          this.thumb.x = Phaser.Math.Clamp(pointer.x, 10, 110);
+          this.thumb.y = screenHeight - 60;
+          
+          // Calculate direction
+          const dx = pointer.x - 60;
+          if (Math.abs(dx) > 20) { // Deadzone
+            this.touchLeft = dx < 0;
+            this.touchRight = dx > 0;
+          }
         }
       });
       
@@ -143,6 +154,14 @@ class GameScene extends Phaser.Scene {
           this.touchRight = false;
           this.thumb.x = 60;
         }
+      });
+      
+      // Reset joystick when touch ends
+      this.input.on('pointerup', () => {
+        this.isDragging = false;
+        this.touchLeft = false;
+        this.touchRight = false;
+        this.thumb.x = 60;
       });
       
       this.isDragging = false;
