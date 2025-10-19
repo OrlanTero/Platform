@@ -317,6 +317,7 @@ class GameScene extends Phaser.Scene {
     this.touchLeft = false;
     this.touchRight = false;
     this.touchJump = false;
+    this.touchDown = false;
     
     // Ladder state
     this.isOnLadder = false;
@@ -1945,15 +1946,23 @@ class GameScene extends Phaser.Scene {
     // Make main camera ignore touch controls (only render on UI camera)
     this.cameras.main.ignore([this.rightButton, this.rightButtonText]);
 
-    // Jump button - scaled down and ensure no stretching with scale instead of setDisplaySize
+    // Calculate button positions based on screen size
+    const buttonMargin = 20; // Margin from screen edges
+    const buttonSpacing = 10; // Space between up and down buttons
+    const buttonY = this.cameras.main.height - buttonMargin - (buttonSize * 0.5);
+    const upButtonY = buttonY - buttonSize - buttonSpacing; // Position for up button
+    const downButtonY = buttonY; // Position for down button
+    const buttonX = this.cameras.main.width - buttonMargin - (buttonSize * 0.5);
+
+    // Jump (up) button
     this.jumpButton = this.add.image(
-      this.cameras.main.width - 60,
-      this.cameras.main.height - 60,
+      buttonX,
+      upButtonY,
       'jumpButton'
     );
     this.jumpButton.setScrollFactor(0);
-    this.jumpButton.setDepth(100000); // Very high depth
-    this.jumpButton.setScale(1); // Use scale to maintain aspect ratio
+    this.jumpButton.setDepth(100000);
+    this.jumpButton.setScale(1);
     this.jumpButton.setInteractive(
       new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
       Phaser.Geom.Circle.Contains
@@ -1961,7 +1970,32 @@ class GameScene extends Phaser.Scene {
     this.touchButtons.push(this.jumpButton);
 
     this.jumpButtonText = this.add
-      .text(this.cameras.main.width - 60, this.cameras.main.height - 60, "↑", {
+      .text(buttonX, upButtonY, "↑", {
+        fontSize: "28px",
+        color: "#ffffff",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(100001);
+    
+    // Down button - positioned below jump button
+    this.downButton = this.add.image(
+      buttonX,
+      downButtonY,
+      'controlButton'
+    );
+    this.downButton.setScrollFactor(0);
+    this.downButton.setDepth(100000);
+    this.downButton.setScale(1);
+    this.downButton.setInteractive(
+      new Phaser.Geom.Circle(buttonSize / 2, buttonSize / 2, buttonRadius + 10),
+      Phaser.Geom.Circle.Contains
+    );
+    this.touchButtons.push(this.downButton);
+
+    this.downButtonText = this.add
+      .text(buttonX, downButtonY, "↓", {
         fontSize: "28px",
         color: "#ffffff",
         fontStyle: "bold",
@@ -1971,7 +2005,7 @@ class GameScene extends Phaser.Scene {
       .setDepth(100001);
     
     // Make main camera ignore touch controls (only render on UI camera)
-    this.cameras.main.ignore([this.jumpButton, this.jumpButtonText]);
+    this.cameras.main.ignore([this.jumpButton, this.jumpButtonText, this.downButton, this.downButtonText]);
 
     // Multi-touch support - track active pointers
     this.activePointers = new Map();
@@ -2045,6 +2079,30 @@ class GameScene extends Phaser.Scene {
         this.touchJump = false;
         this.jumpButton.setTexture('jumpButton');
         this.jumpButton.setScale(1);
+      }
+    });
+    
+    // Down button events with smooth feedback
+    this.downButton.on("pointerdown", (pointer) => {
+      this.touchDown = true;
+      this.activePointers.set(pointer.id, 'down');
+      this.downButton.setTexture('controlButtonActive');
+      this.downButton.setScale(0.95);
+    });
+    this.downButton.on("pointerup", (pointer) => {
+      this.activePointers.delete(pointer.id);
+      if (!Array.from(this.activePointers.values()).includes('down')) {
+        this.touchDown = false;
+        this.downButton.setTexture('controlButton');
+        this.downButton.setScale(1);
+      }
+    });
+    this.downButton.on("pointerout", (pointer) => {
+      this.activePointers.delete(pointer.id);
+      if (!Array.from(this.activePointers.values()).includes('down')) {
+        this.touchDown = false;
+        this.downButton.setTexture('controlButton');
+        this.downButton.setScale(1);
       }
     });
   }
@@ -2193,7 +2251,7 @@ class GameScene extends Phaser.Scene {
       // Vertical movement on ladder
       if (this.cursors.up.isDown || this.touchJump) {
         this.player.setVelocityY(-150); // Climb up
-      } else if (this.cursors.down.isDown) {
+      } else if (this.cursors.down.isDown || this.touchDown) {
         this.player.setVelocityY(150); // Climb down
       } else {
         this.player.setVelocityY(0); // Stop vertical movement

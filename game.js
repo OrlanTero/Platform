@@ -73,6 +73,7 @@ class GameScene extends Phaser.Scene {
         this.touchLeft = false;
         this.touchRight = false;
         this.touchJump = false;
+        this.touchDown = false;
     }
 
     createMap() {
@@ -149,6 +150,16 @@ class GameScene extends Phaser.Scene {
             color: '#ffffff'
         }).setOrigin(0.5).setScrollFactor(0);
         
+        // Down button
+        this.downButton = this.add.circle(this.cameras.main.width - 80, this.cameras.main.height - 20, buttonSize / 2, 0x00aa00, buttonAlpha);
+        this.downButton.setScrollFactor(0);
+        this.downButton.setInteractive();
+        
+        this.add.text(this.cameras.main.width - 80, this.cameras.main.height - 20, '↓', {
+            fontSize: '40px',
+            color: '#ffffff'
+        }).setOrigin(0.5).setScrollFactor(0);
+        
         // Touch events
         this.leftButton.on('pointerdown', () => { this.touchLeft = true; });
         this.leftButton.on('pointerup', () => { this.touchLeft = false; });
@@ -161,6 +172,11 @@ class GameScene extends Phaser.Scene {
         this.jumpButton.on('pointerdown', () => { this.touchJump = true; });
         this.jumpButton.on('pointerup', () => { this.touchJump = false; });
         this.jumpButton.on('pointerout', () => { this.touchJump = false; });
+        
+        // Down button events
+        this.downButton.on('pointerdown', () => { this.touchDown = true; });
+        this.downButton.on('pointerup', () => { this.touchDown = false; });
+        this.downButton.on('pointerout', () => { this.touchDown = false; });
     }
 
     update() {
@@ -176,6 +192,11 @@ class GameScene extends Phaser.Scene {
         // Jump
         if ((this.cursors.up.isDown || this.touchJump) && this.player.body.touching.down) {
             this.player.setVelocityY(-400);
+        }
+        
+        // Down movement (for ladders)
+        if (this.cursors.down.isDown || this.touchDown) {
+            this.player.setVelocityY(200);
         }
         
         // Reset if player falls off the map
