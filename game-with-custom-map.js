@@ -1718,7 +1718,7 @@ window.GameScene = class GameScene extends Phaser.Scene {
       .text(centerX, centerY - 100, "PAUSED", {
         fontSize: "48px",
         fontStyle: "bold",
-        color: "#ffd700",
+        color: "#ffd700", 
         stroke: "#000000",
         strokeThickness: 6,
       })
