@@ -56,7 +56,7 @@
         }
 
         #game-container {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -65,6 +65,21 @@
             touch-action: none;
             -webkit-tap-highlight-color: transparent;
             background: #000;
+        }
+        
+        #fullscreen-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: 1px solid #fff;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            display: none; /* Initially hidden */
         }
 
         canvas {
@@ -142,7 +157,9 @@
             <p>This game is best played in landscape mode on mobile devices.</p>
         </div>
     </div>
-    <div id="game-container"></div>
+    <div id="game-container">
+        <button id="fullscreen-button">Fullscreen</button>
+    </div>
     
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
     <script src="levels/levels-config.js"></script>
@@ -153,14 +170,41 @@
         // Handle fullscreen on mobile
         function requestFullScreen() {
             const el = document.documentElement;
-            if (el.requestFullscreen) {
-                el.requestFullscreen();
-            } else if (el.mozRequestFullScreen) {
-                el.mozRequestFullScreen();
-            } else if (el.webkitRequestFullscreen) {
-                el.webkitRequestFullscreen();
-            } else if (el.msRequestFullscreen) {
-                el.msRequestFullscreen();
+            const fullscreenPromise = el.requestFullscreen || 
+                                   el.mozRequestFullScreen || 
+                                   el.webkitRequestFullscreen || 
+                                   el.msRequestFullscreen;
+            
+            if (fullscreenPromise) {
+                fullscreenPromise.call(el).catch(err => {
+                    console.log('Fullscreen error:', err);
+                    // Show manual fullscreen button if automatic fails
+                    document.getElementById('fullscreen-button').style.display = 'block';
+                });
+            } else {
+                // Show manual fullscreen button if not supported
+                document.getElementById('fullscreen-button').style.display = 'block';
+            }
+        }
+        
+        // Check if fullscreen is active
+        function isFullscreen() {
+            return document.fullscreenElement || 
+                   document.mozFullScreenElement || 
+                   document.webkitFullscreenElement || 
+                   document.msFullscreenElement;
+        }
+        
+        // Toggle fullscreen
+        function toggleFullScreen() {
+            if (isFullscreen()) {
+                const exitFullscreen = document.exitFullscreen || 
+                                     document.mozCancelFullScreen || 
+                                     document.webkitExitFullscreen || 
+                                     document.msExitFullscreen;
+                if (exitFullscreen) exitFullscreen.call(document);
+            } else {
+                requestFullScreen();
             }
         }
 
@@ -179,15 +223,41 @@
 
         // Handle orientation changes
         function handleOrientation() {
-            if (window.innerHeight > window.innerWidth) {
+            const isPortrait = window.innerHeight > window.innerWidth;
+            const gameContainer = document.getElementById('game-container');
+            const orientationWarning = document.getElementById('orientation-warning');
+            
+            if (isPortrait) {
                 // Portrait mode
-                document.getElementById('orientation-warning').style.display = 'flex';
-                document.getElementById('game-container').style.display = 'none';
+                orientationWarning.style.display = 'flex';
+                gameContainer.style.display = 'none';
             } else {
                 // Landscape mode
-                document.getElementById('orientation-warning').style.display = 'none';
-                document.getElementById('game-container').style.display = 'block';
-                requestFullScreen();
+                orientationWarning.style.display = 'none';
+                gameContainer.style.display = 'block';
+                
+                // Try to enter fullscreen when in landscape
+                if (!isFullscreen()) {
+                    // Small delay to ensure the orientation change is complete
+                    setTimeout(() => {
+                        requestFullScreen();
+                    }, 100);
+                }
+            }
+        }
+
+        // Fullscreen change handler
+        function handleFullscreenChange() {
+            const fullscreenButton = document.getElementById('fullscreen-button');
+            if (isFullscreen()) {
+                fullscreenButton.style.display = 'none';
+                // Hide address bar on mobile
+                setTimeout(() => {
+                    window.scrollTo(0, 1);
+                }, 100);
+            } else if (window.innerHeight < window.innerWidth) {
+                // In landscape but not fullscreen
+                fullscreenButton.style.display = 'block';
             }
         }
 
@@ -196,17 +266,28 @@
             // Set initial orientation
             handleOrientation();
             
-            // Add event listener for orientation changes
+            // Add event listeners
             window.addEventListener('resize', handleOrientation);
             window.addEventListener('orientationchange', handleOrientation);
+            
+            // Fullscreen change events
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+            
+            // Manual fullscreen button
+            document.getElementById('fullscreen-button').addEventListener('click', toggleFullScreen);
             
             // Try to lock orientation
             lockOrientation();
             
             // Request fullscreen on touch for mobile
             document.addEventListener('touchstart', function() {
-                requestFullScreen();
-                lockOrientation();
+                if (!isFullscreen() && window.innerHeight < window.innerWidth) {
+                    requestFullScreen();
+                    lockOrientation();
+                }
             }, { once: true });
         });
 
